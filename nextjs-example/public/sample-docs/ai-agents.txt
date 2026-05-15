@@ -1,0 +1,1 @@
+AI agents combine machine learning models with tools to solve complex tasks. An intelligent agent can write code, search the web, and fix errors without human help. Developers are building agents that use reasoning and memory to plan actions automatically. These software systems represent the next step in artificial intelligence.

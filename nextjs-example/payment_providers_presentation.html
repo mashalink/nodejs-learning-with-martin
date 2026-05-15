@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Provider Integrations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,0..100&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* ─── Dark theme tuned for projector contrast ─── */
+    --bg:           #0c1218;
+    --bg-elevated:  #18222e;
+    --bg-accent:    #1f2a38;
+    --bg-warm:      #1c1814;
+
+    --text:         #ffffff;
+    --text-soft:    #e6ecf2;
+    --text-muted:   #9aa9b9;
+    --text-dim:     #6b7a8a;
+
+    --signal:       #ff7a59;
+    --signal-soft:  #ffaa88;
+    --signal-deep:  #d65a3a;
+    --growth:       #7ec888;
+    --growth-soft:  #a8d8b0;
+    --gold:         #ffc857;
+
+    --line:         #2e3a48;
+    --line-soft:    #1d2530;
+
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body:    'IBM Plex Sans', -apple-system, sans-serif;
+    --font-mono:    'IBM Plex Mono', 'Courier New', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 18px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .deck {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .slides {
+    display: flex;
+    height: 100%;
+    transition: transform 0.5s cubic-bezier(0.7, 0, 0.3, 1);
+    will-change: transform;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .slides { transition: none; }
+  }
+
+  .slide {
+    flex: 0 0 100vw;
+    height: 100vh;
+    padding: 5vh 7vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  .slide-inner {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+  }
+
+  .eyebrow .dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: var(--signal);
+    border-radius: 50%;
+    margin: 0 0.6em;
+    vertical-align: middle;
+    transform: translateY(-1px);
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+
+  h1 {
+    font-size: clamp(2.5rem, 5.5vw, 5rem);
+    line-height: 1.02;
+    font-weight: 350;
+    margin-bottom: 1.5rem;
+  }
+
+  h1 em {
+    font-style: italic;
+    font-weight: 300;
+    color: var(--signal);
+  }
+
+  h2 {
+    font-size: clamp(1.8rem, 3.5vw, 3rem);
+    line-height: 1.1;
+    margin-bottom: 2rem;
+    font-weight: 400;
+    color: var(--text);
+  }
+
+  h2 em {
+    font-style: italic;
+    color: var(--signal);
+  }
+
+  h3 {
+    font-size: 1.4rem;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+  }
+
+  p { margin-bottom: 1rem; color: var(--text-soft); }
+
+  .lead {
+    font-size: 1.3rem;
+    color: var(--text);
+    max-width: 60ch;
+    line-height: 1.5;
+    font-weight: 300;
+  }
+
+  .subtitle {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 300;
+    font-size: 1.6rem;
+    color: var(--text-soft);
+    margin-bottom: 2.5rem;
+  }
+
+  .meta {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+  }
+
+  /* ─── Navigation ─── */
+  .nav {
+    position: fixed;
+    bottom: 1.8rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    z-index: 100;
+    background: rgba(24, 34, 46, 0.92);
+    backdrop-filter: blur(8px);
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+  }
+
+  .nav button {
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    transition: background 0.15s;
+  }
+
+  .nav button:hover { background: var(--bg-accent); }
+  .nav button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .counter {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    min-width: 4rem;
+    text-align: center;
+  }
+
+  .dots { display: flex; gap: 0.4rem; }
+
+  .dot-btn {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--line);
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.2s;
+  }
+
+  .dot-btn:hover { background: var(--text-muted); }
+  .dot-btn.active { background: var(--signal); transform: scale(1.3); }
+
+  .hint {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.8rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    z-index: 100;
+  }
+
+  .slide-num {
+    position: absolute;
+    top: 2rem;
+    right: 2rem;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1rem;
+    color: var(--text-muted);
+    z-index: 5;
+  }
+
+  /* ─── Slide 1: title ─── */
+  .slide--title {
+    background:
+      radial-gradient(circle at 100% 100%, rgba(255, 122, 89, 0.10), transparent 55%),
+      radial-gradient(circle at 0% 0%, rgba(126, 200, 136, 0.06), transparent 50%),
+      var(--bg);
+  }
+
+  .title-grid {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 4rem;
+    align-items: end;
+  }
+
+  .ornament {
+    position: absolute;
+    bottom: 3rem;
+    right: 5rem;
+    font-family: var(--font-display);
+    font-style: italic;
+    color: var(--bg-accent);
+    font-size: 14rem;
+    line-height: 1;
+    user-select: none;
+    z-index: 1;
+    opacity: 0.7;
+  }
+
+  /* ─── Slide 2: hook (warmer dark) ─── */
+  .slide--hook {
+    background:
+      radial-gradient(ellipse at 50% 80%, rgba(255, 200, 87, 0.06), transparent 60%),
+      var(--bg-warm);
+  }
+  .slide--hook .eyebrow { color: var(--gold); }
+  .slide--hook .hook-q {
+    font-family: var(--font-display);
+    font-size: clamp(2.2rem, 6vw, 5rem);
+    font-weight: 300;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    margin-bottom: 2.5rem;
+    color: var(--text);
+  }
+  .slide--hook .hook-q em {
+    font-style: italic;
+    color: var(--signal-soft);
+  }
+  .slide--hook .prompt {
+    border-left: 2px solid var(--gold);
+    padding-left: 1.5rem;
+    max-width: 55ch;
+  }
+  .slide--hook .prompt-label {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    color: var(--gold);
+    margin-bottom: 0.5rem;
+  }
+  .slide--hook .prompt p {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.3rem;
+    color: var(--text-soft);
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  /* ─── Grids ─── */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: start;
+  }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  /* ─── List styles ─── */
+  .stack-list {
+    list-style: none;
+    border-top: 1px solid var(--line);
+  }
+
+  .stack-list li {
+    border-bottom: 1px solid var(--line);
+    padding: 0.9rem 0;
+    display: grid;
+    grid-template-columns: 3.2rem 1fr;
+    align-items: baseline;
+    gap: 1rem;
+  }
+
+  .stack-list .num {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--signal);
+    letter-spacing: 0.05em;
+    font-weight: 500;
+  }
+
+  .stack-list .label {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 400;
+    color: var(--text);
+  }
+
+  .stack-list .desc {
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+    line-height: 1.45;
+  }
+
+  /* ─── Card ─── */
+  .card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--line);
+    padding: 1.6rem;
+    border-radius: 4px;
+  }
+
+  .card .label {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    margin-bottom: 0.7rem;
+  }
+
+  .card.signal {
+    border-color: var(--signal);
+    background: linear-gradient(135deg, rgba(255, 122, 89, 0.08), var(--bg-elevated));
+  }
+  .card.signal .label { color: var(--signal); }
+
+  .card.growth {
+    border-color: var(--growth);
+    background: linear-gradient(135deg, rgba(126, 200, 136, 0.08), var(--bg-elevated));
+  }
+  .card.growth .label { color: var(--growth); }
+
+  /* ─── Provider table ─── */
+  .providers {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1rem;
+    margin-top: 1rem;
+    color: var(--text-soft);
+  }
+  .providers th, .providers td {
+    text-align: left;
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .providers th {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 500;
+    border-bottom: 2px solid var(--text);
+  }
+  .providers .name {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    color: var(--text);
+  }
+  .providers .badge {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 2px;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+    font-weight: 600;
+  }
+  .badge.fi { background: var(--growth); color: var(--bg); }
+  .badge.eu { background: var(--gold); color: var(--bg); }
+
+  /* ─── Apple tax slide ─── */
+  .slide--apple {
+    background:
+      radial-gradient(ellipse at 30% 50%, rgba(255, 122, 89, 0.12), transparent 60%),
+      var(--bg);
+  }
+
+  .big-stat {
+    font-family: var(--font-display);
+    font-size: clamp(8rem, 22vw, 18rem);
+    font-weight: 200;
+    line-height: 0.85;
+    color: var(--signal);
+    letter-spacing: -0.05em;
+    text-shadow: 0 0 60px rgba(255, 122, 89, 0.3);
+  }
+  .big-stat .pct {
+    font-size: 0.4em;
+    color: var(--text);
+    vertical-align: super;
+  }
+  .stat-caption {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.3rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+  }
+
+  .lanes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    margin-top: 1.5rem;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .lane {
+    padding: 1.6rem;
+    border-right: 1px solid var(--line);
+    background: var(--bg-elevated);
+  }
+  .lane:last-child { border-right: none; }
+  .lane.warn { background: linear-gradient(135deg, rgba(255, 122, 89, 0.12), var(--bg-elevated)); }
+  .lane.ok { background: linear-gradient(135deg, rgba(126, 200, 136, 0.08), var(--bg-elevated)); }
+  .lane .pct {
+    font-family: var(--font-display);
+    font-size: 2.4rem;
+    font-weight: 400;
+    line-height: 1;
+    margin-bottom: 0.4rem;
+    color: var(--text);
+  }
+  .lane.warn .pct { color: var(--signal); }
+  .lane.ok .pct { color: var(--growth); }
+  .lane .label {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    margin-bottom: 0.6rem;
+  }
+  .lane .body {
+    font-size: 0.95rem;
+    color: var(--text-soft);
+    line-height: 1.5;
+  }
+
+  /* ─── Discussion ─── */
+  .questions {
+    list-style: none;
+    counter-reset: q;
+  }
+  .questions li {
+    counter-increment: q;
+    padding: 1.3rem 0;
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: 3.5rem 1fr;
+    gap: 1rem;
+    align-items: baseline;
+  }
+  .questions li::before {
+    content: counter(q, decimal-leading-zero);
+    font-family: var(--font-mono);
+    color: var(--signal);
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+  .questions li q {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.35rem;
+    font-weight: 300;
+    color: var(--text);
+    line-height: 1.4;
+    quotes: none;
+  }
+
+  /* ─── Final slide ─── */
+  .slide--final {
+    background:
+      radial-gradient(circle at 70% 50%, rgba(255, 122, 89, 0.15), transparent 55%),
+      var(--bg);
+  }
+  .slide--final .eyebrow { color: var(--gold); }
+  .slide--final .arrow {
+    font-family: var(--font-display);
+    font-size: 5rem;
+    color: var(--signal);
+    line-height: 1;
+  }
+
+  /* ─── Footnote ─── */
+  .footnote {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 1.5rem;
+    line-height: 1.6;
+  }
+  .footnote strong { color: var(--text); font-weight: 500; }
+
+  /* ─── Pull-quote ─── */
+  .pullquote {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-style: italic;
+    font-weight: 300;
+    line-height: 1.3;
+    color: var(--text);
+  }
+  .pullquote .accent { color: var(--signal); }
+
+  /* ─── Build-vs-integrate columns ─── */
+  .compare-card {
+    padding: 2rem;
+    border-radius: 4px;
+    height: 100%;
+  }
+  .compare-card.bad {
+    border: 1px solid var(--signal);
+    background: linear-gradient(135deg, rgba(255, 122, 89, 0.08), var(--bg-elevated));
+  }
+  .compare-card.good {
+    border: 1px solid var(--growth);
+    background: linear-gradient(135deg, rgba(126, 200, 136, 0.08), var(--bg-elevated));
+  }
+  .compare-card .heading-mono {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 0.7rem;
+  }
+  .compare-card.bad .heading-mono { color: var(--signal); }
+  .compare-card.good .heading-mono { color: var(--growth); }
+  .compare-card h3 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 300;
+    margin-bottom: 1.2rem;
+    color: var(--text);
+  }
+  .compare-card ul { list-style: none; }
+  .compare-card li {
+    padding: 0.5rem 0;
+    border-bottom: 1px dotted var(--line);
+    font-size: 0.98rem;
+    color: var(--text-soft);
+  }
+  .compare-card li:last-child { border-bottom: none; }
+
+  /* ─── Print ─── */
+  @media print {
+    html, body { height: auto; overflow: visible; background: var(--bg); }
+    .deck { height: auto; }
+    .slides { display: block !important; transform: none !important; }
+    .slide { page-break-after: always; height: 100vh; }
+    .nav, .hint { display: none; }
+  }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 900px) {
+    .grid-2, .grid-3, .lanes, .title-grid { grid-template-columns: 1fr; gap: 2rem; }
+    .lane { border-right: none; border-bottom: 1px solid var(--line); }
+    .ornament { display: none; }
+    .slide { padding: 5vh 5vw; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hint">← → to navigate · F for fullscreen</div>
+
+<div class="deck">
+  <div class="slides" id="slides">
+
+    <!-- ════════ SLIDE 1: Title ════════ -->
+    <section class="slide slide--title">
+      <div class="ornament">€</div>
+      <div class="slide-inner">
+        <div class="eyebrow">Module<span class="dot"></span>Web Development<span class="dot"></span>Payments</div>
+        <div class="title-grid">
+          <div>
+            <h1>Payment<br>Provider<br><em>Integrations</em></h1>
+            <p class="subtitle">Why we don't build our own — and what we choose instead.</p>
+            <p class="meta">A 15-minute walkthrough before the live demo</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════ SLIDE 2: Hook ════════ -->
+    <section class="slide slide--hook">
+      <div class="slide-inner">
+        <div class="eyebrow">01 / Hook</div>
+        <p class="hook-q">So — what would it take to <em>build your own</em><br>payment system from scratch?</p>
+        <div class="prompt">
+          <div class="prompt-label">Think for 90 seconds</div>
+          <p>Don't write code. List the moving parts. What does the user click, what does your server do, and — crucially — what happens to the money between their bank and yours?</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════ SLIDE 3: The iceberg ════════ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <div class="eyebrow">02 / The hidden iceberg</div>
+        <h2>You'd need to build, then operate, <em>all of this</em>.</h2>
+        <div class="grid-2" style="grid-template-columns: 1.2fr 1fr; gap: 4rem;">
+          <div>
+            <svg viewBox="0 0 520 360" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto;">
+              <rect x="200" y="155" width="120" height="50" rx="2" fill="#ffffff"/>
+              <text x="260" y="180" text-anchor="middle" fill="#0c1218" font-family="Fraunces, serif" font-size="13" font-style="italic">Your platform</text>
+              <text x="260" y="195" text-anchor="middle" fill="#0c1218" font-size="9" opacity="0.65">(somehow)</text>
+
+              <g font-size="10" text-anchor="middle">
+                <rect x="20" y="20" width="100" height="36" rx="2" fill="none" stroke="#ffffff" stroke-width="1"/>
+                <text x="70" y="35" fill="#ffffff">PCI DSS vault</text><text x="70" y="48" fill="#9aa9b9">(card storage)</text>
+
+                <rect x="140" y="20" width="100" height="36" rx="2" fill="none" stroke="#ffffff" stroke-width="1"/>
+                <text x="190" y="35" fill="#ffffff">3-D Secure</text><text x="190" y="48" fill="#9aa9b9">(SCA)</text>
+
+                <rect x="260" y="20" width="100" height="36" rx="2" fill="none" stroke="#ffffff" stroke-width="1"/>
+                <text x="310" y="35" fill="#ffffff">Fraud engine</text><text x="310" y="48" fill="#9aa9b9">(ML / rules)</text>
+
+                <rect x="380" y="20" width="120" height="36" rx="2" fill="none" stroke="#ffffff" stroke-width="1"/>
+                <text x="440" y="35" fill="#ffffff">Card network rails</text><text x="440" y="48" fill="#9aa9b9">(Visa / MC / Amex)</text>
+
+                <rect x="20" y="80" width="100" height="36" rx="2" fill="none" stroke="#ffffff" stroke-width="1"/>
+                <text x="70" y="95" fill="#ffffff">Bank APIs</text><text x="70" y="108" fill="#9aa9b9">(acquirers)</text>
+
+                <rect x="20" y="140" width="100" height="36" rx="2" fill="none" stroke="#ffffff" stroke-width="1"/>
+                <text x="70" y="161" fill="#ffffff">Currency / FX</text>
+
+                <rect x="20" y="200" width="100" height="36" rx="2" fill="none" stroke="#ffffff" stroke-width="1"/>
+                <text x="70" y="215" fill="#ffffff">Tax engine</text><text x="70" y="228" fill="#9aa9b9">(VAT, sales tax)</text>
+
+                <rect x="20" y="260" width="100" height="36" rx="2" fill="none" stroke="#ffffff" stroke-width="1"/>
+                <text x="70" y="281" fill="#ffffff">KYC / AML</text>
+
+                <rect x="400" y="80" width="100" height="36" rx="2" fill="none" stroke="#ffffff" stroke-width="1"/>
+                <text x="450" y="101" fill="#ffffff">Webhooks</text>
+
+                <rect x="400" y="140" width="100" height="36" rx="2" fill="none" stroke="#ffffff" stroke-width="1"/>
+                <text x="450" y="161" fill="#ffffff">Settlement</text>
+
+                <rect x="400" y="200" width="100" height="36" rx="2" fill="none" stroke="#ffffff" stroke-width="1"/>
+                <text x="450" y="221" fill="#ffffff">Reconciliation</text>
+
+                <rect x="400" y="260" width="100" height="36" rx="2" fill="none" stroke="#ffffff" stroke-width="1"/>
+                <text x="450" y="275" fill="#ffffff">Disputes /</text>
+                <text x="450" y="287" fill="#ffffff">chargebacks</text>
+
+                <rect x="80" y="310" width="100" height="36" rx="2" fill="none" stroke="#ffffff" stroke-width="1"/>
+                <text x="130" y="331" fill="#ffffff">Refunds</text>
+
+                <rect x="200" y="310" width="120" height="36" rx="2" fill="none" stroke="#ff7a59" stroke-width="1.8"/>
+                <text x="260" y="331" fill="#ff7a59">24/7 ops on-call</text>
+
+                <rect x="340" y="310" width="100" height="36" rx="2" fill="none" stroke="#ffffff" stroke-width="1"/>
+                <text x="390" y="331" fill="#ffffff">Reporting</text>
+              </g>
+
+              <g stroke="#2e3a48" stroke-width="1" fill="none">
+                <line x1="70" y1="56" x2="220" y2="155"/>
+                <line x1="190" y1="56" x2="240" y2="155"/>
+                <line x1="310" y1="56" x2="280" y2="155"/>
+                <line x1="440" y1="56" x2="300" y2="155"/>
+                <line x1="120" y1="98" x2="200" y2="170"/>
+                <line x1="120" y1="158" x2="200" y2="180"/>
+                <line x1="120" y1="218" x2="200" y2="190"/>
+                <line x1="120" y1="278" x2="220" y2="200"/>
+                <line x1="400" y1="98" x2="320" y2="170"/>
+                <line x1="400" y1="158" x2="320" y2="180"/>
+                <line x1="400" y1="218" x2="320" y2="190"/>
+                <line x1="400" y1="278" x2="300" y2="200"/>
+                <line x1="130" y1="310" x2="220" y2="205"/>
+                <line x1="260" y1="310" x2="260" y2="205"/>
+                <line x1="390" y1="310" x2="300" y2="205"/>
+              </g>
+            </svg>
+          </div>
+          <div>
+            <p class="lead">Each box is not a feature.<br>Each box is <em style="color:var(--signal); font-style:italic; font-family:var(--font-display);">a team</em>.</p>
+            <p style="margin-top: 1.2rem; font-size: 1.05rem; color: var(--text-muted); line-height: 1.55;">And every connection between boxes is a contract, a reconciliation report, and a 3 a.m. incident waiting to happen.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════ SLIDE 4: Legal floor ════════ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <div class="eyebrow">03 / The legal floor</div>
+        <h2>Before you write a line of code, <em>regulators set the floor</em>.</h2>
+        <div class="grid-2">
+          <ul class="stack-list">
+            <li>
+              <span class="num">01</span>
+              <div>
+                <div class="label">PCI DSS</div>
+                <div class="desc">Anyone who touches card data. Level 1 audits are annual and expensive.</div>
+              </div>
+            </li>
+            <li>
+              <span class="num">02</span>
+              <div>
+                <div class="label">PSD2 &amp; SCA</div>
+                <div class="desc">EU Strong Customer Authentication — two-factor on most card payments.</div>
+              </div>
+            </li>
+            <li>
+              <span class="num">03</span>
+              <div>
+                <div class="label">GDPR</div>
+                <div class="desc">Personal data: lawful basis, retention, breach notification within 72 hours.</div>
+              </div>
+            </li>
+            <li>
+              <span class="num">04</span>
+              <div>
+                <div class="label">AML / KYC</div>
+                <div class="desc">Know Your Customer. Sanctions screening. Suspicious transaction reporting.</div>
+              </div>
+            </li>
+            <li>
+              <span class="num">05</span>
+              <div>
+                <div class="label">Payment Institution licence</div>
+                <div class="desc">In Finland: Finanssivalvonta (FIN-FSA). Capital requirements, governance, fit-and-proper directors.</div>
+              </div>
+            </li>
+          </ul>
+          <div>
+            <div class="card signal">
+              <div class="label">Worth knowing</div>
+              <p class="pullquote">A breach of card data isn't a bug. It's a <span class="accent">regulatory event</span> — and the fines have eight digits.</p>
+            </div>
+            <p class="footnote">PCI DSS, PSD2, GDPR, AML and licence rules are not optional. They apply whether you're a startup of two or a bank of two thousand.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════ SLIDE 5: Time vs liability ════════ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <div class="eyebrow">04 / Time &amp; liability</div>
+        <h2>The real reason we integrate isn't <em>code</em>. It's <em>risk transfer</em>.</h2>
+        <div class="grid-2">
+          <div class="compare-card bad">
+            <div class="heading-mono">Build it yourself</div>
+            <h3>12–24 months to MVP</h3>
+            <ul>
+              <li>• Annual PCI audits</li>
+              <li>• Bank partnerships to negotiate</li>
+              <li>• 24/7 ops team</li>
+              <li>• You carry the breach liability</li>
+              <li>• You explain it to the regulator</li>
+            </ul>
+          </div>
+          <div class="compare-card good">
+            <div class="heading-mono">Integrate a provider</div>
+            <h3>Days to weeks</h3>
+            <ul>
+              <li>• Provider handles PCI scope</li>
+              <li>• Bank relationships pre-built</li>
+              <li>• Their on-call, not yours</li>
+              <li>• Breach liability shared / reduced</li>
+              <li>• You pay ~1.4–2.9% per transaction</li>
+            </ul>
+          </div>
+        </div>
+        <p class="footnote" style="margin-top: 2rem;"><strong>Thought:</strong> if you save 2% by building your own — but spend a year building it — at what monthly revenue does that ever pay back?</p>
+      </div>
+    </section>
+
+    <!-- ════════ SLIDE 6: Landscape ════════ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <div class="eyebrow">05 / The landscape</div>
+        <h2>The market is <em>not</em> Stripe alone.</h2>
+        <table class="providers">
+          <thead>
+            <tr>
+              <th>Provider</th>
+              <th>Sweet spot</th>
+              <th>What it gets you</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="name">Stripe</span></td>
+              <td>Developer-led startups, global SaaS</td>
+              <td>Best docs in the industry, hosted Checkout, 40+ countries</td>
+            </tr>
+            <tr>
+              <td><span class="name">Adyen</span></td>
+              <td>Enterprise, marketplaces</td>
+              <td>One platform across cards, wallets, in-store. Better pricing at scale.</td>
+            </tr>
+            <tr>
+              <td><span class="name">PayPal / Braintree</span></td>
+              <td>Consumer trust, B2C</td>
+              <td>Brand recognition. Wallet-style "Pay with PayPal" button buyers know.</td>
+            </tr>
+            <tr>
+              <td><span class="name">Klarna</span> <span class="badge eu">EU</span></td>
+              <td>Nordic retail, BNPL</td>
+              <td>Buy-now-pay-later, invoice-after-delivery. Huge in Nordic e-commerce.</td>
+            </tr>
+            <tr>
+              <td><span class="name">Paytrail</span> <span class="badge fi">FI</span></td>
+              <td>Finnish merchants</td>
+              <td>Native bank-button payments (Nordea, OP, S-Pankki) without each integration.</td>
+            </tr>
+            <tr>
+              <td><span class="name">Mollie</span> <span class="badge eu">EU</span></td>
+              <td>EU SMBs</td>
+              <td>Simpler than Stripe, strong iDEAL / Bancontact / SEPA coverage.</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="footnote">Card pricing is roughly comparable (~1.4% + €0.25 in EU, ~2.9% + $0.30 in US). The differences are <strong>payment methods, geography, and developer experience</strong>.</p>
+      </div>
+    </section>
+
+    <!-- ════════ SLIDE 7: Why Stripe ════════ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <div class="eyebrow">06 / Why Stripe (for this course)</div>
+        <h2>Five reasons — and <em>one caveat</em>.</h2>
+        <div class="grid-2">
+          <ul class="stack-list">
+            <li><span class="num">01</span><div><div class="label">Documentation</div><div class="desc">Still the gold standard. Examples in five languages, kept current.</div></div></li>
+            <li><span class="num">02</span><div><div class="label">Developer experience</div><div class="desc">APIs you can read and reason about. Idempotency keys. Webhooks that are debuggable.</div></div></li>
+            <li><span class="num">03</span><div><div class="label">Hosted Checkout</div><div class="desc">Drops you out of PCI scope almost entirely — you never see a card number.</div></div></li>
+            <li><span class="num">04</span><div><div class="label">Global with one SDK</div><div class="desc">Same code path serves cards, Apple Pay, Google Pay, SEPA, Klarna, and more.</div></div></li>
+            <li><span class="num">05</span><div><div class="label">Transparent pricing</div><div class="desc">Published on the website. No enterprise sales call to find out what it costs.</div></div></li>
+          </ul>
+          <div>
+            <div class="card">
+              <div class="label">Caveat</div>
+              <p class="pullquote">Stripe is the right <span class="accent">default</span> — not the right <span class="accent">answer</span>.</p>
+              <p style="font-size: 1rem; color: var(--text-soft); margin-top: 1rem; line-height: 1.55;">At scale, Adyen often wins on price. For a Finnish-only customer base, Paytrail's bank buttons convert better. For consumer-facing B2C, PayPal's brand can matter more than your API.</p>
+              <p style="font-size: 1rem; color: var(--text-soft); margin-top: 1rem; line-height: 1.55;">The skill we're teaching is <strong style="color:var(--text);">how to evaluate</strong>, not which logo to use.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════ SLIDE 8: The flow we'll demo ════════ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <div class="eyebrow">07 / The flow we'll build</div>
+        <h2>One redirect. One webhook. <em>That's the integration.</em></h2>
+        <svg viewBox="0 0 1100 260" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto; margin: 1rem 0;">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#ffffff"/>
+            </marker>
+            <marker id="arrow-signal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#ff7a59"/>
+            </marker>
+          </defs>
+
+          <g>
+            <circle cx="60" cy="100" r="32" fill="#18222e" stroke="#ffffff" stroke-width="1.5"/>
+            <text x="60" y="105" text-anchor="middle" fill="#ffffff" font-family="Fraunces, serif" font-size="14" font-style="italic">User</text>
+            <text x="60" y="160" text-anchor="middle" font-size="9" fill="#9aa9b9">clicks checkout</text>
+          </g>
+
+          <line x1="100" y1="100" x2="200" y2="100" stroke="#ffffff" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <text x="150" y="90" text-anchor="middle" font-size="9" fill="#9aa9b9">POST /api/checkout</text>
+
+          <g>
+            <rect x="210" y="70" width="120" height="60" rx="2" fill="#ffffff" stroke="#ffffff"/>
+            <text x="270" y="95" text-anchor="middle" fill="#0c1218" font-family="Fraunces, serif" font-size="13" font-style="italic">Your server</text>
+            <text x="270" y="112" text-anchor="middle" fill="#0c1218" font-size="9" opacity="0.7">Next.js route</text>
+            <text x="270" y="160" text-anchor="middle" font-size="9" fill="#9aa9b9">looks up prices</text>
+          </g>
+
+          <line x1="330" y1="100" x2="430" y2="100" stroke="#ffffff" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <text x="380" y="90" text-anchor="middle" font-size="9" fill="#9aa9b9">create Session</text>
+
+          <g>
+            <rect x="440" y="60" width="140" height="80" rx="2" fill="#18222e" stroke="#ff7a59" stroke-width="2"/>
+            <text x="510" y="90" text-anchor="middle" fill="#ffffff" font-family="Fraunces, serif" font-size="14" font-style="italic">Stripe</text>
+            <text x="510" y="108" text-anchor="middle" font-size="9" fill="#9aa9b9">hosted page</text>
+            <text x="510" y="122" text-anchor="middle" font-size="9" fill="#9aa9b9">(card UI, 3DS, PCI)</text>
+            <text x="510" y="160" text-anchor="middle" font-size="9" fill="#9aa9b9">user pays</text>
+          </g>
+
+          <line x1="580" y1="100" x2="680" y2="100" stroke="#ffffff" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <text x="630" y="90" text-anchor="middle" font-size="9" fill="#9aa9b9">redirect</text>
+
+          <g>
+            <rect x="690" y="70" width="120" height="60" rx="2" fill="#18222e" stroke="#ffffff" stroke-width="1.5"/>
+            <text x="750" y="95" text-anchor="middle" fill="#ffffff" font-family="Fraunces, serif" font-size="13" font-style="italic">/success</text>
+            <text x="750" y="112" text-anchor="middle" font-size="9" fill="#9aa9b9">user sees "Thanks!"</text>
+          </g>
+
+          <line x1="510" y1="140" x2="510" y2="200" stroke="#ff7a59" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <line x1="510" y1="200" x2="900" y2="200" stroke="#ff7a59" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow-signal)"/>
+          <text x="700" y="190" text-anchor="middle" font-size="9" fill="#ff7a59">checkout.session.completed</text>
+
+          <g>
+            <rect x="910" y="170" width="160" height="60" rx="2" fill="#1c1814" stroke="#ff7a59" stroke-width="2"/>
+            <text x="990" y="195" text-anchor="middle" fill="#ff7a59" font-family="Fraunces, serif" font-size="13" font-style="italic">/api/webhook</text>
+            <text x="990" y="213" text-anchor="middle" font-size="9" fill="#e6ecf2">"money actually moved"</text>
+          </g>
+
+          <line x1="60" y1="240" x2="80" y2="240" stroke="#ffffff" stroke-width="1.5"/>
+          <text x="86" y="244" font-size="10" fill="#e6ecf2">browser-visible flow</text>
+          <line x1="240" y1="240" x2="260" y2="240" stroke="#ff7a59" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <text x="266" y="244" font-size="10" fill="#e6ecf2">server-to-server (the real source of truth)</text>
+        </svg>
+        <p class="footnote" style="margin-top: 0.5rem;"><strong>The teaching beat:</strong> never trust the redirect. The user could close their tab, lose connection, or type the URL manually. The <span style="color:var(--signal);">webhook</span> is Stripe telling your server, server-to-server, that the money actually moved.</p>
+      </div>
+    </section>
+
+    <!-- ════════ SLIDE 9: Mobile payment paths ════════ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <div class="eyebrow">08 / Mobile</div>
+        <h2>"Mobile payments" is actually <em>three different things</em>.</h2>
+        <p class="lead" style="margin-bottom: 1.5rem; color: var(--text-soft);">Most developers — and most product managers — confuse these. The distinctions are worth ~30% of your revenue.</p>
+        <div class="lanes">
+          <div class="lane ok">
+            <div class="label">Path A — Web in app</div>
+            <div class="pct">0%</div>
+            <p class="body"><strong style="color:var(--text);">Mobile browser or in-app webview</strong> redirects to Stripe Checkout. Same flow as desktop. <strong style="color:var(--growth);">No platform commission.</strong></p>
+          </div>
+          <div class="lane ok">
+            <div class="label">Path B — Apple Pay / Google Pay</div>
+            <div class="pct">0%</div>
+            <p class="body"><strong style="color:var(--text);">A wallet, not a billing system.</strong> The card behind it is still processed by Stripe. Apple Pay ≠ In-App Purchase.</p>
+          </div>
+          <div class="lane warn">
+            <div class="label">Path C — In-App Purchase</div>
+            <div class="pct">30%</div>
+            <p class="body"><strong style="color:var(--text);">Digital goods consumed inside an app</strong> (subscriptions, coins, premium features). On iOS you <em>must</em> use Apple's billing.</p>
+          </div>
+        </div>
+        <p class="footnote" style="margin-top: 1.5rem;"><strong>The line:</strong> physical goods and real-world services (Uber, Amazon, Airbnb) can use Stripe inside an app at 0%. Digital goods consumed in-app cannot.</p>
+      </div>
+    </section>
+
+    <!-- ════════ SLIDE 10: Apple tax ════════ -->
+    <section class="slide slide--apple">
+      <div class="slide-inner">
+        <div class="eyebrow" style="color: var(--signal);"><span style="background:var(--signal); color:var(--bg); padding: 3px 9px; letter-spacing: 0.15em; font-weight:600;">FLAG</span>&nbsp;&nbsp;09 / The Apple commission</div>
+        <div class="grid-2" style="grid-template-columns: 0.9fr 1.1fr; gap: 4rem; align-items: center;">
+          <div>
+            <div class="big-stat">30<span class="pct">%</span></div>
+            <p class="stat-caption">on every in-app dollar of digital goods.</p>
+          </div>
+          <div>
+            <h2 style="font-size: 2rem; margin-bottom: 1rem;">If you ship digital, <em>model this from day one</em>.</h2>
+            <ul class="stack-list">
+              <li><span class="num">15%</span><div><div class="label">Small Business Program</div><div class="desc">If you make &lt; $1M/year through the App Store.</div></div></li>
+              <li><span class="num">15%</span><div><div class="label">Year-2+ subscriptions</div><div class="desc">After 12 months of continuous subscriber retention.</div></div></li>
+              <li><span class="num">17 / 13%</span><div><div class="label">EU (DMA, 2024+)</div><div class="desc">Alternative billing now allowed in the EU — at reduced but still meaningful fees.</div></div></li>
+              <li><span class="num">0%</span><div><div class="label">Physical goods &amp; real-world services</div><div class="desc">Uber, Amazon, Airbnb, Deliveroo — all use their own payment systems.</div></div></li>
+            </ul>
+            <p class="footnote"><strong style="color:var(--signal);">Pricing reality:</strong> a €9.99/month digital subscription nets you €6.99. A SaaS sold on the web instead nets ~€9.70. Same product, 38% revenue difference.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════ SLIDE 11: Decision rules ════════ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <div class="eyebrow">10 / Rules of thumb</div>
+        <h2>When to reach for <em>what</em>.</h2>
+        <table class="providers">
+          <thead>
+            <tr>
+              <th>If you're building…</th>
+              <th>Default to</th>
+              <th>Why</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>A web SaaS / subscription product</td>
+              <td><span class="name">Stripe</span></td>
+              <td>Best subscription primitives, billing portal, tax automation.</td>
+            </tr>
+            <tr>
+              <td>An e-commerce store selling physical goods</td>
+              <td><span class="name">Stripe</span> or <span class="name">Adyen</span></td>
+              <td>Shopify-tier defaults; Adyen if you're enterprise.</td>
+            </tr>
+            <tr>
+              <td>A Finnish consumer product</td>
+              <td><span class="name">Paytrail</span> + cards</td>
+              <td>Finns expect to pay with their bank button. Conversion gap is real.</td>
+            </tr>
+            <tr>
+              <td>A retailer with BNPL demand</td>
+              <td><span class="name">Klarna</span> alongside cards</td>
+              <td>Cart-abandonment killer for Nordic / EU retail.</td>
+            </tr>
+            <tr>
+              <td>A mobile app selling digital goods</td>
+              <td><span class="name">Apple/Google IAP</span></td>
+              <td>No choice. Price the 15–30% commission into your model.</td>
+            </tr>
+            <tr>
+              <td>A mobile app selling real-world services</td>
+              <td><span class="name">Stripe</span> in-app</td>
+              <td>0% platform fee. Apple's rules permit this — don't accidentally use IAP.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ════════ SLIDE 12: Discussion ════════ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <div class="eyebrow">11 / Discuss</div>
+        <h2>Open questions, <em>no single answer</em>.</h2>
+        <ol class="questions">
+          <li><q>If a customer disputes a charge as fraud, who eats the loss — you, your bank, or Stripe?</q></li>
+          <li><q>A client says: "Let's save 2.9% by building our own payments." What's your reply, in one sentence?</q></li>
+          <li><q>A Finnish startup sells to Germany, France and the US. What provider mix would you propose?</q></li>
+          <li><q>You're building a mobile-first language-learning app. How does the 30% Apple commission shape your price?</q></li>
+          <li><q>A user closes the tab before the success page renders. Are they charged? Does your server know?</q></li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ════════ SLIDE 13: Final / Demo bridge ════════ -->
+    <section class="slide slide--final">
+      <div class="slide-inner">
+        <div class="eyebrow">Next</div>
+        <h1 style="margin-bottom: 1rem;">Live <em>walkthrough</em></h1>
+        <p class="subtitle">Wiring Stripe Checkout into a Next.js app — together, step by step.</p>
+        <p class="arrow">→</p>
+        <p class="meta" style="margin-top: 2rem;">Open the walkthrough document and follow along.</p>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<nav class="nav">
+  <button id="prev" aria-label="Previous slide">←</button>
+  <div class="counter" id="counter">01 / 13</div>
+  <div class="dots" id="dots"></div>
+  <button id="next" aria-label="Next slide">→</button>
+</nav>
+
+<script>
+  (function() {
+    const slidesEl = document.getElementById('slides');
+    const slides = slidesEl.querySelectorAll('.slide');
+    const total = slides.length;
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+    const counter = document.getElementById('counter');
+    const dotsContainer = document.getElementById('dots');
+    let current = 0;
+
+    for (let i = 0; i < total; i++) {
+      const dot = document.createElement('button');
+      dot.className = 'dot-btn';
+      dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+      dot.addEventListener('click', () => goTo(i));
+      dotsContainer.appendChild(dot);
+    }
+    const dots = dotsContainer.querySelectorAll('.dot-btn');
+
+    slides.forEach((s, i) => {
+      const num = document.createElement('div');
+      num.className = 'slide-num';
+      num.textContent = String(i + 1).padStart(2, '0') + ' / ' + String(total).padStart(2, '0');
+      s.appendChild(num);
+    });
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function update() {
+      slidesEl.style.transform = `translateX(-${current * 100}vw)`;
+      counter.textContent = `${pad(current + 1)} / ${pad(total)}`;
+      prevBtn.disabled = current === 0;
+      nextBtn.disabled = current === total - 1;
+      dots.forEach((d, i) => d.classList.toggle('active', i === current));
+    }
+
+    function goTo(i) {
+      current = Math.max(0, Math.min(total - 1, i));
+      update();
+    }
+
+    prevBtn.addEventListener('click', () => goTo(current - 1));
+    nextBtn.addEventListener('click', () => goTo(current + 1));
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault(); goTo(current + 1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault(); goTo(current - 1);
+      } else if (e.key === 'Home') {
+        e.preventDefault(); goTo(0);
+      } else if (e.key === 'End') {
+        e.preventDefault(); goTo(total - 1);
+      } else if (e.key === 'f' || e.key === 'F') {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen();
+        } else {
+          document.exitFullscreen();
+        }
+      }
+    });
+
+    let touchStartX = 0;
+    document.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+    });
+    document.addEventListener('touchend', (e) => {
+      const diff = e.changedTouches[0].screenX - touchStartX;
+      if (Math.abs(diff) > 50) {
+        if (diff < 0) goTo(current + 1);
+        else goTo(current - 1);
+      }
+    });
+
+    update();
+  })();
+</script>
+
+</body>
+</html>

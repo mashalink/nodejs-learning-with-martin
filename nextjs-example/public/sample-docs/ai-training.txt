@@ -1,0 +1,1 @@
+Training machine learning models requires large datasets and powerful computers. Developers fine-tune models on specific tasks like writing code or detecting errors in software. The training process teaches artificial intelligence to recognise patterns and make predictions. Better tools and faster hardware are making model development more accessible.
