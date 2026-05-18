@@ -1,0 +1,2319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Headless CMS — Lecture &amp; Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0c;
+  --bg-elev: #131318;
+  --bg-elev-2: #1c1c24;
+  --text: #ededed;
+  --text-muted: #8b8b94;
+  --text-dim: #5a5a64;
+  --accent: #ff5733;
+  --accent-soft: #ffb37a;
+  --amber: #fbbf24;
+  --mint: #5eead4;
+  --border: #25252e;
+  --border-bright: #3a3a45;
+  --display: 'Fraunces', Georgia, serif;
+  --body: 'IBM Plex Sans', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.55;
+  height: 100%;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle film grain on background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.deck {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  padding: 6vh 7vw;
+  opacity: 0;
+  transform: translateX(40px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  pointer-events: none;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.slide.active {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.slide.prev {
+  transform: translateX(-40px);
+}
+
+/* === HEADER + NAV === */
+.slide-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4vh;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.slide-header .section-tag {
+  color: var(--accent);
+}
+
+.controls {
+  position: fixed;
+  bottom: 24px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.controls > * { pointer-events: auto; }
+
+.nav-btn {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-family: var(--mono);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.nav-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.progress {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  background: var(--bg-elev);
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  min-width: 80px;
+  text-align: center;
+}
+
+.progress .current { color: var(--text); }
+
+/* === TYPOGRAPHY === */
+h1, h2, h3 {
+  font-family: var(--display);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+h1 {
+  font-size: clamp(3rem, 7vw, 6rem);
+  font-weight: 300;
+}
+
+h1 em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--accent);
+}
+
+h2 {
+  font-size: clamp(2.2rem, 4.5vw, 3.5rem);
+  font-weight: 300;
+  margin-bottom: 2.5vh;
+}
+
+h2 em {
+  font-style: italic;
+  color: var(--accent);
+  font-weight: 400;
+}
+
+h3 {
+  font-size: 1.6rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+p {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  max-width: 65ch;
+}
+
+p strong, p b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.lead {
+  font-size: 1.35rem;
+  color: var(--text);
+  max-width: 60ch;
+  font-weight: 300;
+}
+
+.mono { font-family: var(--mono); font-size: 0.9em; }
+
+/* === TITLE SLIDE === */
+.title-slide {
+  justify-content: center;
+}
+
+.title-slide .meta {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 2rem;
+}
+
+.title-slide h1 {
+  font-size: clamp(4rem, 11vw, 9rem);
+  margin-bottom: 1.5rem;
+}
+
+.title-slide .subtitle {
+  font-family: var(--display);
+  font-style: italic;
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  color: var(--text-muted);
+  font-weight: 300;
+  margin-bottom: 4rem;
+}
+
+.title-slide .footer-line {
+  display: flex;
+  gap: 2rem;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* === ARCHITECTURE DIAGRAM === */
+.diagram-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.diagram-svg { max-width: 100%; height: auto; max-height: 65vh; }
+
+.diagram-svg .node-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  fill: var(--text);
+  letter-spacing: 0.05em;
+}
+
+.diagram-svg .node-sub {
+  font-family: var(--mono);
+  font-size: 9px;
+  fill: var(--text-dim);
+  letter-spacing: 0.1em;
+}
+
+.diagram-svg .conn {
+  stroke: var(--border-bright);
+  stroke-width: 1.5;
+  fill: none;
+  stroke-dasharray: 4 4;
+}
+
+.diagram-svg .conn.active {
+  stroke: var(--accent);
+  animation: dashFlow 2s linear infinite;
+}
+
+@keyframes dashFlow {
+  to { stroke-dashoffset: -16; }
+}
+
+.head-node {
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.head-node:hover .head-bg {
+  fill: var(--accent);
+  fill-opacity: 0.15;
+}
+
+.head-node:hover .head-icon {
+  stroke: var(--accent);
+}
+
+/* === SPLIT COMPARISON === */
+.split {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 0;
+  align-items: stretch;
+}
+
+.split-divider {
+  background: var(--border);
+  width: 1px;
+  position: relative;
+}
+
+.split-divider::after {
+  content: 'VS';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg);
+  padding: 6px 10px;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.split-side {
+  padding: 0 3rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.split-side h3 {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.split-side .big {
+  font-family: var(--display);
+  font-size: 2.2rem;
+  font-weight: 400;
+  margin-bottom: 1.5rem;
+  color: var(--text);
+}
+
+.split-side.headless .big em {
+  color: var(--accent);
+  font-style: italic;
+}
+
+.split-side ul {
+  list-style: none;
+}
+
+.split-side li {
+  padding: 0.7rem 0;
+  border-bottom: 1px dashed var(--border);
+  color: var(--text-muted);
+  display: flex;
+  gap: 0.8rem;
+  font-size: 0.95rem;
+}
+
+.split-side li::before {
+  content: '→';
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.split-side.headless li::before {
+  color: var(--accent);
+}
+
+/* === COMPARISON TABLE === */
+.cmp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.cmp-table th, .cmp-table td {
+  padding: 14px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.cmp-table th {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-weight: 500;
+  border-bottom: 1px solid var(--border-bright);
+}
+
+.cmp-table tbody tr {
+  transition: background 0.2s;
+}
+
+.cmp-table tbody tr:hover {
+  background: var(--bg-elev);
+}
+
+.cmp-table .col-trad { color: var(--text-muted); }
+.cmp-table .col-head { color: var(--accent-soft); }
+
+/* === BAR CHART === */
+.chart-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 900px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 80px;
+  align-items: center;
+  gap: 16px;
+  margin: 14px 0;
+}
+
+.bar-row .label {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--text);
+  text-align: right;
+}
+
+.bar-track {
+  background: var(--bg-elev);
+  border-radius: 2px;
+  height: 36px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.bar-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--accent), var(--accent-soft));
+  transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 2px;
+}
+
+.bar-fill.alt {
+  background: linear-gradient(90deg, var(--mint), var(--mint));
+  opacity: 0.7;
+}
+
+.bar-fill.muted {
+  background: var(--border-bright);
+}
+
+.bar-row .value {
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* === GUESS WIDGET === */
+.guess-widget {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2rem;
+  max-width: 600px;
+  margin: 2rem 0;
+}
+
+.guess-widget .q {
+  font-family: var(--display);
+  font-size: 1.3rem;
+  font-style: italic;
+  color: var(--text);
+  margin-bottom: 1.5rem;
+}
+
+.guess-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  outline: none;
+  margin: 1.5rem 0 1rem;
+}
+
+.guess-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid var(--bg);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.guess-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid var(--bg);
+}
+
+.guess-display {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin-bottom: 1.5rem;
+}
+
+.guess-current {
+  font-family: var(--display);
+  font-size: 3rem;
+  font-weight: 300;
+  color: var(--accent);
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.btn {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 12px 24px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 2px;
+}
+
+.btn:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.btn-secondary {
+  border-color: var(--border-bright);
+  color: var(--text-muted);
+}
+
+.btn-secondary:hover {
+  border-color: var(--text);
+  background: transparent;
+  color: var(--text);
+}
+
+.guess-reveal {
+  display: none;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px dashed var(--border);
+}
+
+.guess-reveal.shown {
+  display: block;
+  animation: fadeUp 0.5s ease;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.guess-reveal .actual {
+  font-family: var(--mono);
+  color: var(--mint);
+}
+
+.guess-feedback {
+  margin-top: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+/* === CRAWLER DEMO (the centerpiece) === */
+.crawler-stage {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: stretch;
+  margin-top: 1rem;
+}
+
+.site-card {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.site-card .browser-bar {
+  background: var(--bg-elev-2);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.dots {
+  display: flex;
+  gap: 4px;
+}
+
+.dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border-bright);
+}
+
+.html-preview {
+  background: var(--bg);
+  padding: 1rem;
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  line-height: 1.7;
+  color: var(--text-dim);
+  overflow: hidden;
+  position: relative;
+  min-height: 180px;
+}
+
+.html-preview .tag-name { color: #c084fc; }
+.html-preview .tag-attr { color: #fbbf24; }
+.html-preview .tag-val { color: #5eead4; }
+.html-preview .signal { color: var(--accent); font-weight: 500; background: rgba(255, 87, 51, 0.1); }
+
+.scanner {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  top: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.scanner.scanning {
+  opacity: 1;
+  animation: scanDown 1.5s ease-in-out;
+}
+
+@keyframes scanDown {
+  0% { top: 0; opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+.scan-result {
+  background: var(--bg-elev-2);
+  border-top: 1px solid var(--border);
+  padding: 1rem;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  min-height: 100px;
+}
+
+.scan-result .placeholder {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.scan-result .detected {
+  color: var(--mint);
+  display: block;
+  margin: 4px 0;
+}
+
+.scan-result .undetected {
+  color: var(--accent);
+  display: block;
+  margin: 4px 0;
+}
+
+.scan-result .key {
+  color: var(--text-dim);
+  display: inline-block;
+  width: 90px;
+}
+
+.crawler-controls {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.hidden-cms {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-elev-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s;
+  text-align: center;
+  padding: 2rem;
+}
+
+.hidden-cms.shown {
+  opacity: 0.97;
+  pointer-events: auto;
+}
+
+.hidden-cms .badge {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 1rem;
+}
+
+.hidden-cms .what {
+  font-family: var(--display);
+  font-size: 2.2rem;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+.hidden-cms .desc {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  max-width: 90%;
+}
+
+/* === VENDOR CARDS === */
+.vendor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.vendor-card {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  padding: 1.5rem;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.vendor-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.vendor-card.recommended {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, var(--bg-elev) 0%, rgba(255, 87, 51, 0.05) 100%);
+}
+
+.vendor-card .vendor-name {
+  font-family: var(--display);
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin-bottom: 0.3rem;
+}
+
+.vendor-card.recommended .vendor-name {
+  color: var(--accent);
+}
+
+.vendor-card .vendor-tag {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+.vendor-card .vendor-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.recommended-badge {
+  display: inline-block;
+  background: var(--accent);
+  color: var(--bg);
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  padding: 3px 8px;
+  border-radius: 2px;
+  margin-bottom: 0.5rem;
+}
+
+/* === REASONS LIST === */
+.reasons {
+  list-style: none;
+  counter-reset: reason;
+  margin: 2rem 0;
+}
+
+.reasons li {
+  counter-increment: reason;
+  padding: 1rem 0 1rem 4rem;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  color: var(--text-muted);
+}
+
+.reasons li::before {
+  content: '0' counter(reason);
+  position: absolute;
+  left: 0;
+  top: 1rem;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+}
+
+.reasons li strong {
+  color: var(--text);
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+/* === CODE BLOCK === */
+.code-block {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  margin: 1rem 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.code-tabs {
+  display: flex;
+  background: var(--bg-elev-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.code-tab {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  padding: 10px 16px;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  border-right: 1px solid var(--border);
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.code-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  background: var(--bg);
+}
+
+.code-content {
+  padding: 1rem 1.2rem;
+  overflow-x: auto;
+  display: none;
+  white-space: pre;
+}
+
+.code-content.active { display: block; }
+
+.code-content .com { color: var(--text-dim); font-style: italic; }
+.code-content .kw { color: #c084fc; }
+.code-content .str { color: #5eead4; }
+.code-content .fn { color: #fbbf24; }
+.code-content .num { color: var(--accent-soft); }
+
+.copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  cursor: pointer;
+  border-radius: 2px;
+  z-index: 2;
+}
+
+.copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+.copy-btn.copied { color: var(--mint); border-color: var(--mint); }
+
+/* === DECISION FLOW === */
+.decision-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.decision-card {
+  background: var(--bg-elev);
+  border-left: 3px solid var(--accent);
+  padding: 1.2rem 1.5rem;
+  border-radius: 0 4px 4px 0;
+}
+
+.decision-card .scenario {
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 1rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.decision-card .pick {
+  font-family: var(--mono);
+  font-size: 1.05rem;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* === QUIZ === */
+.quiz-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 750px;
+}
+
+.quiz-progress-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 2rem;
+}
+
+.quiz-progress-bar div {
+  flex: 1;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  transition: background 0.3s;
+}
+
+.quiz-progress-bar div.done { background: var(--mint); }
+.quiz-progress-bar div.wrong { background: var(--accent); }
+.quiz-progress-bar div.current { background: var(--text); }
+
+.quiz-question {
+  font-family: var(--display);
+  font-size: 1.8rem;
+  font-weight: 400;
+  margin-bottom: 2rem;
+  line-height: 1.3;
+}
+
+.quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.quiz-option {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  padding: 1rem 1.4rem;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--body);
+  color: var(--text);
+  font-size: 1rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.quiz-option .opt-letter {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border-bright);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.quiz-option:hover {
+  border-color: var(--text-muted);
+}
+
+.quiz-option:hover .opt-letter {
+  color: var(--text);
+  border-color: var(--text);
+}
+
+.quiz-option.correct {
+  border-color: var(--mint);
+  background: rgba(94, 234, 212, 0.05);
+}
+
+.quiz-option.correct .opt-letter {
+  background: var(--mint);
+  color: var(--bg);
+  border-color: var(--mint);
+}
+
+.quiz-option.wrong {
+  border-color: var(--accent);
+  background: rgba(255, 87, 51, 0.05);
+}
+
+.quiz-option.wrong .opt-letter {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+.quiz-option.disabled {
+  pointer-events: none;
+}
+
+.quiz-explanation {
+  margin-top: 1.5rem;
+  padding: 1rem 1.4rem;
+  background: var(--bg-elev);
+  border-left: 3px solid var(--mint);
+  border-radius: 0 4px 4px 0;
+  display: none;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+.quiz-explanation.shown { display: block; animation: fadeUp 0.4s ease; }
+
+.quiz-next {
+  margin-top: 1.5rem;
+  align-self: flex-start;
+}
+
+.quiz-final {
+  text-align: center;
+}
+
+.quiz-score {
+  font-family: var(--display);
+  font-size: 6rem;
+  font-weight: 300;
+  color: var(--accent);
+  line-height: 1;
+  margin: 1.5rem 0 0.5rem;
+}
+
+.quiz-score .total {
+  color: var(--text-dim);
+  font-size: 0.4em;
+}
+
+.quiz-message {
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 1.5rem;
+  color: var(--text);
+  margin-bottom: 2rem;
+}
+
+/* === CALLOUTS / KEY POINT === */
+.callout {
+  background: var(--bg-elev);
+  border-left: 3px solid var(--accent);
+  padding: 1.2rem 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 0 4px 4px 0;
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 1.15rem;
+  color: var(--text);
+  font-weight: 300;
+  max-width: 70ch;
+}
+
+.callout .key {
+  font-family: var(--mono);
+  font-style: normal;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+/* === LISTS === */
+.bullet-list {
+  list-style: none;
+  margin: 1.5rem 0;
+}
+
+.bullet-list li {
+  padding: 0.5rem 0 0.5rem 1.5rem;
+  position: relative;
+  color: var(--text-muted);
+  font-size: 1.05rem;
+}
+
+.bullet-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 1.05rem;
+  width: 8px;
+  height: 1px;
+  background: var(--accent);
+}
+
+/* === TWO COLUMN === */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: start;
+}
+
+.two-col h3 {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.two-col.contrast .col-good h3 { color: var(--mint); }
+.two-col.contrast .col-bad h3 { color: var(--accent); }
+
+.intro-text { max-width: 70ch; margin-bottom: 1rem; }
+
+/* === KBD HINT === */
+.kbd-hint {
+  position: fixed;
+  bottom: 24px;
+  right: 32px;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  z-index: 10;
+}
+
+.kbd-hint kbd {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin: 0 2px;
+  color: var(--text-muted);
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 900px) {
+  .slide { padding: 4vh 5vw; }
+  h1 { font-size: 2.5rem; }
+  h2 { font-size: 1.8rem; }
+  .crawler-stage { grid-template-columns: 1fr; }
+  .split { grid-template-columns: 1fr; }
+  .split-divider { display: none; }
+  .split-side { padding: 1rem 0; }
+  .two-col { grid-template-columns: 1fr; }
+}
+
+/* === SCROLLBAR === */
+.slide::-webkit-scrollbar { width: 6px; }
+.slide::-webkit-scrollbar-track { background: transparent; }
+.slide::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+<!-- ============ SLIDE 1: TITLE ============ -->
+<section class="slide title-slide active" data-slide="1">
+  <div class="meta">Business College Helsinki — Web Development</div>
+  <h1>Headless<br><em>CMS</em></h1>
+  <div class="subtitle">Decoupling content from presentation, and what the market share figures aren't telling you.</div>
+  <div class="footer-line">
+    <span>20 slides</span>
+    <span>·</span>
+    <span>~75 min lecture</span>
+    <span>·</span>
+    <span>+ 75 min lab</span>
+  </div>
+</section>
+
+<!-- ============ SLIDE 2: WHAT IS IT ============ -->
+<section class="slide" data-slide="2">
+  <div class="slide-header">
+    <span><span class="section-tag">A</span> · Concept</span>
+    <span>What is a headless CMS?</span>
+  </div>
+  <h2>A content store with <em>no opinion</em><br>about how that content is rendered.</h2>
+  <p class="lead" style="margin-top: 2rem;">A traditional CMS like WordPress ships finished HTML pages. A headless CMS exposes content over an API — REST or GraphQL — and leaves rendering entirely to whatever consumes it. The "head," the presentation layer, is missing by design.</p>
+  <div class="callout" style="margin-top: 3rem;">
+    <span class="key">Etymology</span>
+    The term came from web devs in the mid-2010s who got tired of stuffing mobile-app content into WordPress. The "head" is the rendered output. Cut it off, and what remains is a content API.
+  </div>
+</section>
+
+<!-- ============ SLIDE 3: ARCHITECTURE ============ -->
+<section class="slide" data-slide="3">
+  <div class="slide-header">
+    <span><span class="section-tag">A</span> · Architecture</span>
+    <span>One backend, many heads</span>
+  </div>
+  <h2>One body, <em>many heads</em>.</h2>
+  <p style="margin-bottom: 1rem;">The backend stays the same. What changes is who's reading the API.</p>
+  <div class="diagram-wrap">
+    <svg class="diagram-svg" viewBox="0 0 900 480" xmlns="http://www.w3.org/2000/svg">
+      <!-- CMS box (left) -->
+      <g>
+        <rect x="40" y="170" width="220" height="140" rx="4" fill="#131318" stroke="#3a3a45" stroke-width="1.5"/>
+        <text x="150" y="200" text-anchor="middle" class="node-sub">// HEADLESS CMS</text>
+        <text x="150" y="232" text-anchor="middle" class="node-label" style="font-size: 14px; fill: #ff5733;">Content Repository</text>
+        <line x1="60" y1="248" x2="240" y2="248" stroke="#25252e"/>
+        <text x="150" y="268" text-anchor="middle" class="node-sub">DB · ADMIN UI</text>
+        <text x="150" y="288" text-anchor="middle" class="node-sub">REST · GRAPHQL</text>
+      </g>
+
+      <!-- API node -->
+      <g>
+        <rect x="340" y="220" width="120" height="40" rx="4" fill="#131318" stroke="#ff5733" stroke-dasharray="3 3"/>
+        <text x="400" y="244" text-anchor="middle" class="node-label" style="fill: #ff5733;">/api/...</text>
+      </g>
+
+      <!-- Connection lines from CMS to API -->
+      <path d="M 260 240 L 340 240" class="conn active"/>
+
+      <!-- 4 head nodes (right) -->
+      <g class="head-node" data-head="web">
+        <rect class="head-bg" x="540" y="50" width="280" height="70" rx="4" fill="#131318" stroke="#3a3a45"/>
+        <g class="head-icon" stroke="#8b8b94" stroke-width="1.5" fill="none">
+          <rect x="560" y="68" width="34" height="24" rx="2"/>
+          <line x1="560" y1="78" x2="594" y2="78"/>
+        </g>
+        <text x="610" y="80" class="node-label">Web app</text>
+        <text x="610" y="100" class="node-sub">REACT · NEXT.JS · ASTRO</text>
+      </g>
+
+      <g class="head-node" data-head="mobile">
+        <rect class="head-bg" x="540" y="140" width="280" height="70" rx="4" fill="#131318" stroke="#3a3a45"/>
+        <g class="head-icon" stroke="#8b8b94" stroke-width="1.5" fill="none">
+          <rect x="565" y="155" width="22" height="34" rx="3"/>
+          <circle cx="576" cy="184" r="1.5" fill="#8b8b94"/>
+        </g>
+        <text x="610" y="170" class="node-label">Mobile app</text>
+        <text x="610" y="190" class="node-sub">iOS · ANDROID · RN</text>
+      </g>
+
+      <g class="head-node" data-head="kiosk">
+        <rect class="head-bg" x="540" y="230" width="280" height="70" rx="4" fill="#131318" stroke="#3a3a45"/>
+        <g class="head-icon" stroke="#8b8b94" stroke-width="1.5" fill="none">
+          <rect x="558" y="248" width="38" height="28" rx="1"/>
+          <line x1="572" y1="276" x2="582" y2="276"/>
+          <line x1="568" y1="280" x2="586" y2="280"/>
+        </g>
+        <text x="610" y="260" class="node-label">In-store kiosk</text>
+        <text x="610" y="280" class="node-sub">DIGITAL SIGNAGE</text>
+      </g>
+
+      <g class="head-node" data-head="voice">
+        <rect class="head-bg" x="540" y="320" width="280" height="70" rx="4" fill="#131318" stroke="#3a3a45"/>
+        <g class="head-icon" stroke="#8b8b94" stroke-width="1.5" fill="none">
+          <circle cx="577" cy="355" r="14"/>
+          <line x1="571" y1="350" x2="571" y2="360"/>
+          <line x1="577" y1="346" x2="577" y2="364"/>
+          <line x1="583" y1="350" x2="583" y2="360"/>
+        </g>
+        <text x="610" y="350" class="node-label">Voice / IoT</text>
+        <text x="610" y="370" class="node-sub">ALEXA · DEVICE</text>
+      </g>
+
+      <!-- Connection lines from API to heads -->
+      <path d="M 460 240 Q 500 240 500 85 L 540 85" class="conn active"/>
+      <path d="M 460 240 Q 500 240 500 175 L 540 175" class="conn active"/>
+      <path d="M 460 240 Q 500 240 500 265 L 540 265" class="conn active"/>
+      <path d="M 460 240 Q 500 240 500 355 L 540 355" class="conn active"/>
+
+      <!-- Labels -->
+      <text x="400" y="200" text-anchor="middle" class="node-sub" style="fill: #ff5733;">// SAME API</text>
+      <text x="500" y="430" text-anchor="middle" class="node-sub">DIFFERENT FRONTENDS · SAME CONTENT</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ============ SLIDE 4: TRADITIONAL VS HEADLESS ============ -->
+<section class="slide" data-slide="4">
+  <div class="slide-header">
+    <span><span class="section-tag">B</span> · Comparison</span>
+    <span>Traditional vs. Headless</span>
+  </div>
+  <h2>The split, in a sentence.</h2>
+  <div class="split">
+    <div class="split-side traditional">
+      <h3>Traditional / Coupled</h3>
+      <div class="big">WordPress renders the page <em>for</em> you.</div>
+      <ul>
+        <li>Backend and frontend in one PHP runtime</li>
+        <li>Theme system controls how content looks</li>
+        <li>Plugin ecosystem (60k+) does the heavy lifting</li>
+        <li>One content type per site, one site per stack</li>
+        <li>Editor has WYSIWYG with live preview</li>
+      </ul>
+    </div>
+    <div class="split-divider"></div>
+    <div class="split-side headless">
+      <h3>Headless / Decoupled</h3>
+      <div class="big">Strapi serves <em>JSON</em>. You render it.</div>
+      <ul>
+        <li>Backend serves data over REST or GraphQL</li>
+        <li>Frontend is whatever you want — React, mobile, kiosk</li>
+        <li>Smaller plugin ecosystem, bigger framework freedom</li>
+        <li>One backend can feed many frontends</li>
+        <li>Editor preview varies by vendor — improving fast</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 5: WHEN NOT TO ============ -->
+<section class="slide" data-slide="5">
+  <div class="slide-header">
+    <span><span class="section-tag">B</span> · Trade-offs</span>
+    <span>When headless is the wrong tool</span>
+  </div>
+  <h2>Headless isn't <em>better</em>. It's <em>different</em>.</h2>
+  <p class="intro-text" style="margin-bottom: 2rem;">A small-business brochure site that the owner updates once a month is almost always better served by WordPress, Squarespace, or Webflow. Lead with this — students leave most CMS lectures thinking headless is universally superior. It isn't.</p>
+  <div class="two-col contrast">
+    <div class="col-bad">
+      <h3>Avoid headless when…</h3>
+      <ul class="bullet-list">
+        <li>The content team is non-technical and edits in-page WYSIWYG</li>
+        <li>The site is one website, not a multi-channel system</li>
+        <li>There's no frontend developer on the team</li>
+        <li>You need it shipped this week with a $0 budget</li>
+        <li>Existing WordPress is fine and the migration would be theater</li>
+      </ul>
+    </div>
+    <div class="col-good">
+      <h3>Reach for headless when…</h3>
+      <ul class="bullet-list">
+        <li>You're delivering content to web + mobile + something else</li>
+        <li>Performance is critical and you need static + CDN</li>
+        <li>Content structure is genuinely complex (i18n, deep relations)</li>
+        <li>Your team has frontend engineers who'd rather not touch PHP</li>
+        <li>You're replacing a creaking WordPress whose theme is unmaintainable</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 6: CMS MARKET 2026 (with guess) ============ -->
+<section class="slide" data-slide="6">
+  <div class="slide-header">
+    <span><span class="section-tag">C</span> · Market Share</span>
+    <span>The state of the CMS world, 2026</span>
+  </div>
+  <h2>Before the bars: <em>guess</em>.</h2>
+  <p style="margin-bottom: 1rem;">What share of the entire web does WordPress alone power in 2026? Not the CMS market — the whole web, including no-CMS sites.</p>
+  <div class="guess-widget" id="guessWidget1">
+    <div class="q">Move the slider to your guess.</div>
+    <input type="range" min="0" max="100" value="50" class="guess-slider" id="guessSlider1">
+    <div class="guess-display">
+      <span>0%</span>
+      <span>100%</span>
+    </div>
+    <div class="guess-current" id="guessCurrent1">50%</div>
+    <button class="btn" id="guessBtn1">Reveal answer</button>
+    <div class="guess-reveal" id="guessReveal1">
+      <div style="font-family: var(--mono); font-size: 0.85rem; color: var(--text-dim);">YOUR GUESS: <span id="userGuess1">50</span>%</div>
+      <div style="font-family: var(--mono); font-size: 0.85rem; color: var(--text-dim); margin-top: 0.3rem;">ACTUAL: <span class="actual">~43%</span> of all websites — about <span class="actual">62%</span> of CMS-powered sites.</div>
+      <div class="guess-feedback" id="guessFeedback1"></div>
+    </div>
+  </div>
+  <p style="font-size: 0.95rem; color: var(--text-dim); margin-top: 1rem;">Source: W3Techs, top 10M sites · April 2026</p>
+</section>
+
+<!-- ============ SLIDE 7: BAR CHART ============ -->
+<section class="slide" data-slide="7">
+  <div class="slide-header">
+    <span><span class="section-tag">C</span> · Market Share</span>
+    <span>CMS leaderboard, 2026</span>
+  </div>
+  <h2>The shape of the market.</h2>
+  <p style="margin-bottom: 1rem;">Share of CMS-powered sites only (~70% of the web). About 30% of websites use no detected CMS at all.</p>
+  <div class="chart-container" data-chart="cms-share">
+    <div class="bar-row">
+      <div class="label">WordPress</div>
+      <div class="bar-track"><div class="bar-fill" data-target="98">&nbsp;</div></div>
+      <div class="value">62.8%</div>
+    </div>
+    <div class="bar-row">
+      <div class="label">Shopify</div>
+      <div class="bar-track"><div class="bar-fill" data-target="11">&nbsp;</div></div>
+      <div class="value">7.0%</div>
+    </div>
+    <div class="bar-row">
+      <div class="label">Wix</div>
+      <div class="bar-track"><div class="bar-fill" data-target="6">&nbsp;</div></div>
+      <div class="value">3.7%</div>
+    </div>
+    <div class="bar-row">
+      <div class="label">Squarespace</div>
+      <div class="bar-track"><div class="bar-fill" data-target="5">&nbsp;</div></div>
+      <div class="value">3.2%</div>
+    </div>
+    <div class="bar-row">
+      <div class="label">Joomla</div>
+      <div class="bar-track"><div class="bar-fill" data-target="3.7">&nbsp;</div></div>
+      <div class="value">2.4%</div>
+    </div>
+    <div class="bar-row">
+      <div class="label">Drupal</div>
+      <div class="bar-track"><div class="bar-fill" data-target="1.9">&nbsp;</div></div>
+      <div class="value">1.2%</div>
+    </div>
+    <div class="bar-row">
+      <div class="label">Webflow</div>
+      <div class="bar-track"><div class="bar-fill" data-target="1.4">&nbsp;</div></div>
+      <div class="value">0.9%</div>
+    </div>
+  </div>
+  <div class="callout" style="margin-top: 2rem;">
+    <span class="key">Notice</span>
+    There is no headless CMS on this chart. Hold that thought.
+  </div>
+</section>
+
+<!-- ============ SLIDE 8: TRENDS / ENTERPRISE ============ -->
+<section class="slide" data-slide="8">
+  <div class="slide-header">
+    <span><span class="section-tag">C</span> · Market Share</span>
+    <span>Trends &amp; the enterprise picture</span>
+  </div>
+  <h2>The view changes <em>at the top</em>.</h2>
+  <div class="two-col">
+    <div>
+      <h3>The trend lines</h3>
+      <ul class="bullet-list">
+        <li>WordPress peaked at <strong>~65%</strong> of the CMS market in 2022 — slowly losing ground since</li>
+        <li><strong>Shopify</strong> grew from 0.3% in 2014 to ~7% today (23× growth)</li>
+        <li><strong>Wix</strong> ~29× growth over the same period</li>
+        <li><strong>Joomla</strong> down 80% from its peak</li>
+        <li>Open-source CMSs (Joomla, Drupal) ceding share to SaaS builders</li>
+      </ul>
+    </div>
+    <div>
+      <h3>At the enterprise tier</h3>
+      <p style="margin-bottom: 1rem;">Among the world's top 5,000 sites, the picture flips:</p>
+      <ul class="bullet-list">
+        <li>WordPress + Drupal still hold majority (51%+)</li>
+        <li><strong>Adobe Experience Manager</strong> + <strong>Contentful</strong> together ~24%</li>
+        <li>Drupal punches well above its long-tail weight here</li>
+      </ul>
+      <div class="callout" style="font-size: 1rem; margin-top: 1.5rem;">
+        Long-tail share tells you nothing about high-end share. Two different markets.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 9: HEADLESS VENDORS ============ -->
+<section class="slide" data-slide="9">
+  <div class="slide-header">
+    <span><span class="section-tag">D</span> · Headless market</span>
+    <span>The vendors</span>
+  </div>
+  <h2>Headless: the <em>category</em> nobody charts.</h2>
+  <p style="max-width: 70ch;">Headless CMS as a market is sized at roughly <strong>$3.9 billion in 2026</strong>, projected to <strong>$22 billion by 2034</strong> — a 21%+ annual growth rate. The vendors people actually use, ranked roughly by share of voice (G2, dev surveys, GitHub):</p>
+  <div class="vendor-grid">
+    <div class="vendor-card">
+      <div class="vendor-name">Contentful</div>
+      <div class="vendor-tag">Enterprise SaaS</div>
+      <div class="vendor-desc">The category creator. Mature enterprise workflows, expensive past free tier.</div>
+    </div>
+    <div class="vendor-card">
+      <div class="vendor-name">Sanity</div>
+      <div class="vendor-tag">Real-time + GROQ</div>
+      <div class="vendor-desc">Customizable studio, real-time collaboration, custom query language (GROQ).</div>
+    </div>
+    <div class="vendor-card">
+      <div class="vendor-name">Strapi</div>
+      <div class="vendor-tag">Open source / self-host</div>
+      <div class="vendor-desc">The Node.js standard for self-hosted headless. Auto-generated REST + GraphQL.</div>
+    </div>
+    <div class="vendor-card">
+      <div class="vendor-name">Storyblok</div>
+      <div class="vendor-tag">Visual editor</div>
+      <div class="vendor-desc">Drag-and-drop visual editing, built for marketing teams who hate forms.</div>
+    </div>
+    <div class="vendor-card">
+      <div class="vendor-name">Payload</div>
+      <div class="vendor-tag">Next.js-native</div>
+      <div class="vendor-desc">TypeScript-first, schema-as-code, runs in your Next.js process. The new kid.</div>
+    </div>
+    <div class="vendor-card">
+      <div class="vendor-name">+ Hygraph, Prismic, Kontent.ai…</div>
+      <div class="vendor-tag">The long tail</div>
+      <div class="vendor-desc">Each carving out a niche — GraphQL federation, marketer-friendly slices, governance.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 10: THE CRAWLER DEMO (CENTERPIECE) ============ -->
+<section class="slide" data-slide="10">
+  <div class="slide-header">
+    <span><span class="section-tag">D</span> · Methodology</span>
+    <span>Why the headless number is unreliable</span>
+  </div>
+  <h2>How a crawler <em>sees</em> a website.</h2>
+  <p style="margin-bottom: 0.5rem;">Detection tools (W3Techs, BuiltWith) work by inspecting the HTML, response headers, and JavaScript a website ships. Run the crawler on both. Watch what it finds — and what it misses.</p>
+
+  <div class="crawler-stage">
+    <!-- WordPress site -->
+    <div class="site-card" id="wpCard">
+      <div class="browser-bar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <span style="color: var(--text-muted);">wordpress-blog.fi</span>
+      </div>
+      <div class="html-preview">
+&lt;!DOCTYPE html&gt;
+&lt;html lang="fi"&gt;
+&lt;head&gt;
+  <span class="signal">&lt;meta name="generator" content="WordPress 6.4"&gt;</span>
+  <span class="signal">&lt;link rel="stylesheet" href="/wp-content/themes/twentytwentyfour/style.css"&gt;</span>
+  <span class="signal">&lt;script src="/wp-includes/js/jquery.min.js"&gt;&lt;/script&gt;</span>
+  &lt;title&gt;Blog&lt;/title&gt;
+&lt;/head&gt;
+&lt;body class="<span class="signal">wp-singular</span>"&gt;
+  &lt;article&gt;...&lt;/article&gt;
+&lt;/body&gt;&lt;/html&gt;
+        <div class="scanner" id="scanner1"></div>
+      </div>
+      <div class="scan-result" id="result1">
+        <span class="placeholder">// crawler output appears here</span>
+      </div>
+    </div>
+
+    <!-- Headless site -->
+    <div class="site-card" id="modernCard">
+      <div class="browser-bar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <span style="color: var(--text-muted);">modern-blog.fi</span>
+      </div>
+      <div class="html-preview">
+&lt;!DOCTYPE html&gt;
+&lt;html lang="fi"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;link rel="stylesheet" href="/_next/static/css/abc123.css"&gt;
+  &lt;script src="/_next/static/chunks/main-def456.js"&gt;&lt;/script&gt;
+  &lt;title&gt;Blog&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;div id="__next"&gt;
+    &lt;article&gt;...&lt;/article&gt;
+  &lt;/div&gt;
+&lt;/body&gt;&lt;/html&gt;
+        <div class="scanner" id="scanner2"></div>
+      </div>
+      <div class="scan-result" id="result2">
+        <span class="placeholder">// crawler output appears here</span>
+      </div>
+      <div class="hidden-cms" id="hiddenCms">
+        <div class="badge">↑ The crawler missed this</div>
+        <div class="what">Contentful</div>
+        <div class="desc">A headless CMS upstream, hidden behind the API. The HTML carries no signal of it. To detection tools, this site is just "Next.js."</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="crawler-controls">
+    <button class="btn" id="runCrawler">▶ Run crawler on both</button>
+    <button class="btn btn-secondary" id="revealHidden" disabled>Reveal what's actually behind →</button>
+  </div>
+</section>
+
+<!-- ============ SLIDE 11: METHODOLOGY TAKEAWAYS ============ -->
+<section class="slide" data-slide="11">
+  <div class="slide-header">
+    <span><span class="section-tag">D</span> · Takeaways</span>
+    <span>How to read CMS statistics</span>
+  </div>
+  <h2>So how do analysts <em>actually</em> measure headless?</h2>
+  <ul class="reasons">
+    <li><strong>Vendor revenue</strong>Contentful, Sanity, Strapi report ARR. Useful for sizing the market, useless for share-of-sites.</li>
+    <li><strong>GitHub signal</strong>Stars, npm downloads, contributor counts. Reveals developer interest but not production deployments.</li>
+    <li><strong>Developer surveys</strong>Stack Overflow, State of JS, G2. Reveals what people <em>say</em> they use.</li>
+    <li><strong>Selective fingerprinting</strong>Some tools detect specific Sanity/Contentful client SDKs in the JS bundle. Catches a fraction of real usage.</li>
+  </ul>
+  <div class="callout">
+    <span class="key">The lesson</span>
+    A market-share number for headless CMS is always a model, not a measurement. When you read "X% of websites use Y," the first question is: <em>how did they count?</em>
+  </div>
+</section>
+
+<!-- ============ SLIDE 12: THE SHORTLIST ============ -->
+<section class="slide" data-slide="12">
+  <div class="slide-header">
+    <span><span class="section-tag">E</span> · Choosing one</span>
+    <span>Which headless CMS to learn first</span>
+  </div>
+  <h2>Five worth your time.</h2>
+  <table class="cmp-table" style="margin-top: 1rem;">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Strapi</th>
+        <th>Sanity</th>
+        <th>Contentful</th>
+        <th>Payload</th>
+        <th>Storyblok</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Open source</td>
+        <td class="col-head">✓</td>
+        <td>Studio only</td>
+        <td>—</td>
+        <td class="col-head">✓</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Self-host</td>
+        <td class="col-head">✓</td>
+        <td>—</td>
+        <td>—</td>
+        <td class="col-head">✓</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Free tier (no card)</td>
+        <td class="col-head">✓</td>
+        <td>✓</td>
+        <td>limited</td>
+        <td class="col-head">✓</td>
+        <td>limited</td>
+      </tr>
+      <tr>
+        <td>API style</td>
+        <td>REST + GraphQL</td>
+        <td>GROQ + GraphQL</td>
+        <td>REST + GraphQL</td>
+        <td>REST + Local API</td>
+        <td>REST + GraphQL</td>
+      </tr>
+      <tr>
+        <td>Best fit</td>
+        <td>Self-hosted, customizable</td>
+        <td>Real-time collab</td>
+        <td>Enterprise SaaS</td>
+        <td>Next.js-native</td>
+        <td>Visual page-building</td>
+      </tr>
+      <tr>
+        <td>Curve for students</td>
+        <td>Moderate</td>
+        <td>Steep (GROQ)</td>
+        <td>Easy UI</td>
+        <td>Moderate (TS-heavy)</td>
+        <td>Easy</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ SLIDE 13: STRAPI RECOMMENDATION ============ -->
+<section class="slide" data-slide="13">
+  <div class="slide-header">
+    <span><span class="section-tag">E</span> · Recommendation</span>
+    <span>The classroom pick</span>
+  </div>
+  <h2>For learning, the answer is <em>Strapi</em>.</h2>
+  <p style="margin-bottom: 1rem;">This isn't "Strapi is best in absolute terms." It's "Strapi is best for teaching the headless concept in 90 minutes." Five reasons:</p>
+  <ul class="reasons">
+    <li><strong>No accounts, no credit cards</strong><code class="mono" style="color:var(--accent-soft);">npx create-strapi-app</code> — runs locally on SQLite. Crucial in a classroom of 20+ students.</li>
+    <li><strong>Open source, fully readable</strong>Students can clone the repo, read the source, inspect the database. Pedagogically transparent.</li>
+    <li><strong>REST + GraphQL out of the box</strong>Both API styles for free. Sanity would force GROQ on top of "headless" — two new things at once.</li>
+    <li><strong>Admin UI is genuinely usable</strong>Editor concepts (content types, relations, draft/publish) come through clearly without writing schemas in code first.</li>
+    <li><strong>Industry-relevant</strong>Top 3 most-used headless CMSs and the most-used self-hosted option. The skill transfers.</li>
+  </ul>
+  <div class="callout">
+    <span class="key">Honest caveat</span>
+    In a real product team, Sanity or Payload is often the better technical choice — particularly if the frontend is Next.js. Don't leave the room thinking Strapi is universally optimal.
+  </div>
+</section>
+
+<!-- ============ SLIDE 14: DECISION RULE ============ -->
+<section class="slide" data-slide="14">
+  <div class="slide-header">
+    <span><span class="section-tag">E</span> · Beyond the classroom</span>
+    <span>Picking one in the wild</span>
+  </div>
+  <h2>Outside the classroom, <em>match the tool to the team</em>.</h2>
+  <div class="decision-grid">
+    <div class="decision-card">
+      <div class="scenario">Need full data ownership, have DevOps</div>
+      <div class="pick">→ Strapi or Payload (self-hosted)</div>
+    </div>
+    <div class="decision-card">
+      <div class="scenario">Real-time collaborative editing matters most</div>
+      <div class="pick">→ Sanity</div>
+    </div>
+    <div class="decision-card">
+      <div class="scenario">Enterprise scale, complex localization</div>
+      <div class="pick">→ Contentful</div>
+    </div>
+    <div class="decision-card">
+      <div class="scenario">Marketing team needs visual page-building</div>
+      <div class="pick">→ Storyblok</div>
+    </div>
+    <div class="decision-card">
+      <div class="scenario">Tightly coupled with Next.js frontend</div>
+      <div class="pick">→ Payload</div>
+    </div>
+    <div class="decision-card">
+      <div class="scenario">Brochure site, non-technical owner</div>
+      <div class="pick">→ Honestly? Just use WordPress</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 15: LAB INTRO ============ -->
+<section class="slide" data-slide="15">
+  <div class="slide-header">
+    <span><span class="section-tag">F</span> · Lab</span>
+    <span>What we're building</span>
+  </div>
+  <h2>Lab: a blog, the <em>headless</em> way.</h2>
+  <p class="lead" style="margin-bottom: 2rem;">A Strapi backend serves articles over REST. A Vite + React SPA fetches them and renders a list and a detail view. ~90 minutes.</p>
+  <div class="two-col">
+    <div>
+      <h3>Why Vite + React, not Next.js?</h3>
+      <p>To isolate the headless concepts from SSR / Server Components / server actions. Students see a clean SPA fetching JSON. The mental model — backend serves data, frontend renders it — stays uncluttered. SSR is a separate lecture.</p>
+    </div>
+    <div>
+      <h3>What you'll have built by the end</h3>
+      <ul class="bullet-list">
+        <li>A Strapi instance running on <code class="mono">localhost:1337</code> with an Article content type</li>
+        <li>Three published articles, editable via the admin UI</li>
+        <li>A Vite + React SPA on <code class="mono">localhost:5173</code> rendering the articles as a clean list</li>
+        <li>A clear demo of why CORS exists</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 16: STRAPI SETUP ============ -->
+<section class="slide" data-slide="16">
+  <div class="slide-header">
+    <span><span class="section-tag">F</span> · Lab — Part 1 (35 min)</span>
+    <span>Stand up the backend</span>
+  </div>
+  <h2>Step 1 — <em>Strapi</em>.</h2>
+  <p style="margin-bottom: 1rem;">One command. The <code class="mono">--quickstart</code> flag uses SQLite so there's no database to install separately.</p>
+
+  <div class="code-block">
+    <button class="copy-btn" data-copy="cmd1"># copy</button>
+    <div class="code-content active" id="cmd1"><span class="com"># Scaffold Strapi (uses SQLite, skips Cloud signup)</span>
+<span class="kw">npx</span> create-strapi@latest blog-cms --quickstart --skip-cloud
+
+<span class="com"># Strapi opens http://localhost:1337/admin</span>
+<span class="com"># Create your first admin user</span></div>
+  </div>
+
+  <h3 style="margin-top: 2rem; font-family: var(--mono); font-size: 0.85rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-dim);">Then in the admin panel</h3>
+  <ol style="list-style: none; counter-reset: step; margin-top: 1rem;">
+    <li style="counter-increment: step; padding: 0.6rem 0 0.6rem 2.5rem; position: relative; color: var(--text-muted); border-bottom: 1px dashed var(--border);">
+      <span style="position: absolute; left: 0; font-family: var(--mono); color: var(--accent); font-size: 0.85rem;">01.</span>
+      Create a <strong style="color:var(--text);">Content Type</strong> called <code class="mono" style="color:var(--accent-soft);">Article</code> with fields: <code class="mono">title</code> (Text), <code class="mono">slug</code> (UID, attached to title), <code class="mono">body</code> (Long text), <code class="mono">excerpt</code> (Text)
+    </li>
+    <li style="counter-increment: step; padding: 0.6rem 0 0.6rem 2.5rem; position: relative; color: var(--text-muted); border-bottom: 1px dashed var(--border);">
+      <span style="position: absolute; left: 0; font-family: var(--mono); color: var(--accent); font-size: 0.85rem;">02.</span>
+      Save → Strapi auto-restarts with the new schema
+    </li>
+    <li style="counter-increment: step; padding: 0.6rem 0 0.6rem 2.5rem; position: relative; color: var(--text-muted); border-bottom: 1px dashed var(--border);">
+      <span style="position: absolute; left: 0; font-family: var(--mono); color: var(--accent); font-size: 0.85rem;">03.</span>
+      Create three sample articles → <strong style="color:var(--text);">Publish</strong> each
+    </li>
+    <li style="counter-increment: step; padding: 0.6rem 0 0.6rem 2.5rem; position: relative; color: var(--text-muted); border-bottom: 1px dashed var(--border);">
+      <span style="position: absolute; left: 0; font-family: var(--mono); color: var(--accent); font-size: 0.85rem;">04.</span>
+      <strong style="color:var(--accent);">Critical:</strong> Settings → Roles → Public → enable <code class="mono">find</code> and <code class="mono">findOne</code> on Article. <em>This is the moment the API becomes reachable from outside.</em>
+    </li>
+    <li style="counter-increment: step; padding: 0.6rem 0 0.6rem 2.5rem; position: relative; color: var(--text-muted);">
+      <span style="position: absolute; left: 0; font-family: var(--mono); color: var(--accent); font-size: 0.85rem;">05.</span>
+      Visit <code class="mono" style="color: var(--mint);">http://localhost:1337/api/articles</code> → you should see JSON
+    </li>
+  </ol>
+</section>
+
+<!-- ============ SLIDE 17: FRONTEND SETUP ============ -->
+<section class="slide" data-slide="17">
+  <div class="slide-header">
+    <span><span class="section-tag">F</span> · Lab — Part 2 (30 min)</span>
+    <span>Wire up the frontend</span>
+  </div>
+  <h2>Step 2 — <em>Vite + React</em>.</h2>
+
+  <div class="code-block">
+    <div class="code-tabs">
+      <button class="code-tab active" data-target="tab-scaffold">scaffold.sh</button>
+      <button class="code-tab" data-target="tab-env">.env</button>
+      <button class="code-tab" data-target="tab-app">src/App.jsx</button>
+    </div>
+    <button class="copy-btn" id="copyActiveTab"># copy</button>
+
+<div class="code-content active" id="tab-scaffold"><span class="com"># From your projects folder</span>
+<span class="kw">npm</span> create vite@latest blog-frontend -- --template react
+<span class="kw">cd</span> blog-frontend
+<span class="kw">npm</span> install
+<span class="kw">npm</span> run dev   <span class="com"># → http://localhost:5173</span></div>
+
+<div class="code-content" id="tab-env"><span class="com"># .env — Vite exposes only VITE_* vars to the client</span>
+VITE_STRAPI_URL=http://localhost:1337
+
+<span class="com"># Use import.meta.env.VITE_*  (process.env.* won't work in Vite)</span>
+<span class="com"># Restart the dev server after editing .env</span></div>
+
+<div class="code-content" id="tab-app"><span class="kw">import</span> { useEffect, useState } <span class="kw">from</span> <span class="str">"react"</span>;
+
+<span class="kw">const</span> STRAPI = import.meta.env.<span class="fn">VITE_STRAPI_URL</span>;
+
+<span class="kw">export default function</span> <span class="fn">App</span>() {
+  <span class="kw">const</span> [articles, setArticles] = <span class="fn">useState</span>([]);
+  <span class="kw">const</span> [error, setError] = <span class="fn">useState</span>(<span class="kw">null</span>);
+
+  <span class="fn">useEffect</span>(() => {
+    <span class="fn">fetch</span>(<span class="str">`${STRAPI}/api/articles`</span>)
+      .<span class="fn">then</span>((r) => r.ok ? r.<span class="fn">json</span>() : Promise.<span class="fn">reject</span>(r.status))
+      .<span class="fn">then</span>((json) => <span class="fn">setArticles</span>(json.data))
+      .<span class="fn">catch</span>((e) => <span class="fn">setError</span>(<span class="str">`Strapi error: ${e}`</span>));
+  }, []);
+
+  <span class="kw">if</span> (error) <span class="kw">return</span> &lt;p&gt;{error}&lt;/p&gt;;
+
+  <span class="kw">return</span> (
+    &lt;main&gt;
+      &lt;h1&gt;Course Notes&lt;/h1&gt;
+      {articles.<span class="fn">map</span>((a) => (
+        &lt;article key={a.documentId}&gt;
+          &lt;h2&gt;{a.title}&lt;/h2&gt;
+          &lt;p&gt;{a.excerpt}&lt;/p&gt;
+        &lt;/article&gt;
+      ))}
+    &lt;/main&gt;
+  );
+}</div>
+  </div>
+
+  <div class="callout" style="margin-top: 1.5rem; font-size: 1rem;">
+    <span class="key">Watch for old tutorials</span>
+    Strapi 5 flattened the API response. If you Google "Strapi React fetch" you'll see code with <code class="mono" style="color: var(--accent-soft); font-style: normal;">a.attributes.title</code> — that's <strong>v4 syntax</strong> and won't work here. In v5, fields are at the top level: <code class="mono" style="color: var(--mint); font-style: normal;">a.title</code>. The <code class="mono" style="font-style: normal;">documentId</code> is the new stable key.
+  </div>
+</section>
+
+<!-- ============ SLIDE 18: STRETCH + RUBRIC ============ -->
+<section class="slide" data-slide="18">
+  <div class="slide-header">
+    <span><span class="section-tag">F</span> · Lab — Part 3 (10 min, optional)</span>
+    <span>Stretch tasks &amp; what to look for</span>
+  </div>
+  <h2>If they finish early.</h2>
+  <div class="two-col">
+    <div>
+      <h3>Stretch tasks (pick one)</h3>
+      <ul class="bullet-list">
+        <li><strong>Sort newest first.</strong> Append <code class="mono">?sort=publishedAt:desc</code> to the fetch URL. Add a new article in Strapi — watch it appear at the top. Server-side sorting via URL.</li>
+        <li><strong>Add a cover image.</strong> Add a <code class="mono">cover</code> media field. Fetch with <code class="mono">?populate=cover</code> (relations don't auto-populate in v5). Render with <code class="mono">{`${STRAPI}${a.cover.url}`}</code>.</li>
+        <li><strong>Add an Author relation.</strong> Create an <code class="mono">Author</code> content type, add a relation from Article. Don't forget to enable <code class="mono">find</code>/<code class="mono">findOne</code> on Author too. Fetch with <code class="mono">?populate=author</code>.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>What to assess</h3>
+      <ul class="bullet-list">
+        <li>Do they understand the boundary? Test: <em>"What happens if Strapi goes down?"</em></li>
+        <li>Did they remember Public role permissions, or debug a 403?</li>
+        <li>Did they recognize the v4 vs v5 syntax issue when copy-pasting old tutorials?</li>
+        <li>Can they name one task harder with this stack vs. WordPress, and one easier?</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 19: QUIZ ============ -->
+<section class="slide" data-slide="19">
+  <div class="slide-header">
+    <span>Recap</span>
+    <span>Memory check — 5 questions</span>
+  </div>
+  <h2>Five questions. <em>No pressure</em>.</h2>
+  <div class="quiz-container" id="quizContainer">
+    <div class="quiz-progress-bar" id="quizProgress">
+      <div class="current"></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+    </div>
+    <div id="quizBody"></div>
+  </div>
+</section>
+
+<!-- ============ SLIDE 20: END ============ -->
+<section class="slide" data-slide="20">
+  <div class="slide-header">
+    <span>End</span>
+    <span>Thank you</span>
+  </div>
+  <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; max-width: 60ch;">
+    <h2>That's it. <em>Now build something</em>.</h2>
+    <p class="lead" style="margin-top: 1rem;">The deck and starter repo are on the LMS. The lab brief lives alongside.</p>
+    <div class="callout" style="margin-top: 3rem;">
+      <span class="key">If you remember one thing</span>
+      A market-share number for headless CMS is always a model, not a measurement. The same skepticism applies to almost any "X% of websites use Y" statistic you'll read.
+    </div>
+    <div style="margin-top: 4rem; font-family: var(--mono); font-size: 0.8rem; color: var(--text-dim); letter-spacing: 0.15em; text-transform: uppercase;">
+      Martin · Business College Helsinki
+    </div>
+  </div>
+</section>
+
+</div>
+
+<div class="controls">
+  <button class="nav-btn" id="prevBtn" aria-label="Previous">←</button>
+  <div class="progress"><span class="current" id="currentSlide">01</span> / <span id="totalSlides">20</span></div>
+  <button class="nav-btn" id="nextBtn" aria-label="Next">→</button>
+</div>
+
+<div class="kbd-hint">
+  <kbd>←</kbd> <kbd>→</kbd> navigate · <kbd>F</kbd> fullscreen
+</div>
+
+<script>
+// ============== DECK NAVIGATION ==============
+const slides = document.querySelectorAll('.slide');
+const total = slides.length;
+let current = 0;
+
+const totalEl = document.getElementById('totalSlides');
+const currentEl = document.getElementById('currentSlide');
+totalEl.textContent = String(total).padStart(2, '0');
+
+function showSlide(idx) {
+  if (idx < 0 || idx >= total) return;
+  slides.forEach((s, i) => {
+    s.classList.remove('active', 'prev');
+    if (i === idx) s.classList.add('active');
+    else if (i < idx) s.classList.add('prev');
+  });
+  current = idx;
+  currentEl.textContent = String(idx + 1).padStart(2, '0');
+  // Trigger any per-slide animation hooks
+  const slide = slides[idx];
+  if (slide.dataset.slide === '7') animateBars(slide);
+}
+
+document.getElementById('nextBtn').addEventListener('click', () => showSlide(current + 1));
+document.getElementById('prevBtn').addEventListener('click', () => showSlide(current - 1));
+
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); showSlide(current + 1); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); showSlide(current - 1); }
+  if (e.key === 'f' || e.key === 'F') {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  }
+});
+
+// ============== BAR CHART ANIMATION ==============
+let barsAnimated = false;
+function animateBars(slide) {
+  if (barsAnimated) return;
+  const bars = slide.querySelectorAll('.bar-fill');
+  bars.forEach((bar, i) => {
+    setTimeout(() => {
+      const target = parseFloat(bar.dataset.target);
+      bar.style.width = target + '%';
+    }, i * 100);
+  });
+  barsAnimated = true;
+}
+
+// ============== GUESS WIDGET ==============
+const slider1 = document.getElementById('guessSlider1');
+const guessCurrent1 = document.getElementById('guessCurrent1');
+const guessBtn1 = document.getElementById('guessBtn1');
+const guessReveal1 = document.getElementById('guessReveal1');
+const userGuess1 = document.getElementById('userGuess1');
+const guessFeedback1 = document.getElementById('guessFeedback1');
+
+slider1.addEventListener('input', () => {
+  guessCurrent1.textContent = slider1.value + '%';
+});
+
+guessBtn1.addEventListener('click', () => {
+  const guess = parseInt(slider1.value);
+  userGuess1.textContent = guess;
+  const actual = 43;
+  const diff = Math.abs(guess - actual);
+  let feedback;
+  if (diff <= 5) feedback = 'Within 5 points — you have a good intuition for the web.';
+  else if (diff <= 15) feedback = 'In the right zone. Most people overestimate.';
+  else if (guess > actual) feedback = 'Most people overestimate WordPress. It dominates the CMS market — about 62% of CMS sites — but ~30% of all sites use no detected CMS at all.';
+  else feedback = 'Lower than reality. WordPress remains genuinely dominant.';
+  guessFeedback1.textContent = feedback;
+  guessReveal1.classList.add('shown');
+  guessBtn1.style.display = 'none';
+});
+
+// ============== CRAWLER DEMO ==============
+const runCrawler = document.getElementById('runCrawler');
+const revealHidden = document.getElementById('revealHidden');
+const scanner1 = document.getElementById('scanner1');
+const scanner2 = document.getElementById('scanner2');
+const result1 = document.getElementById('result1');
+const result2 = document.getElementById('result2');
+const hiddenCms = document.getElementById('hiddenCms');
+
+runCrawler.addEventListener('click', () => {
+  // Reset
+  result1.innerHTML = '<span class="placeholder">// scanning...</span>';
+  result2.innerHTML = '<span class="placeholder">// scanning...</span>';
+  scanner1.classList.remove('scanning');
+  scanner2.classList.remove('scanning');
+  // Force reflow
+  void scanner1.offsetWidth;
+  scanner1.classList.add('scanning');
+  scanner2.classList.add('scanning');
+
+  setTimeout(() => {
+    result1.innerHTML = `
+      <span class="detected"><span class="key">CMS:</span> WordPress 6.4 ✓</span>
+      <span class="detected"><span class="key">THEME:</span> Twenty Twenty-Four</span>
+      <span class="detected"><span class="key">SIGNALS:</span> 5 fingerprints matched</span>
+    `;
+    result2.innerHTML = `
+      <span class="detected"><span class="key">FRAMEWORK:</span> Next.js (detected)</span>
+      <span class="detected"><span class="key">UI LIB:</span> React</span>
+      <span class="undetected"><span class="key">CMS:</span> not detected ⚠</span>
+    `;
+    revealHidden.disabled = false;
+    runCrawler.textContent = '↻ Re-run crawler';
+  }, 1500);
+});
+
+revealHidden.addEventListener('click', () => {
+  hiddenCms.classList.toggle('shown');
+  revealHidden.textContent = hiddenCms.classList.contains('shown')
+    ? '× Hide'
+    : 'Reveal what\'s actually behind →';
+});
+
+// ============== CODE TABS ==============
+document.querySelectorAll('.code-tabs').forEach(tabs => {
+  tabs.addEventListener('click', (e) => {
+    if (!e.target.classList.contains('code-tab')) return;
+    const block = tabs.closest('.code-block');
+    block.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+    block.querySelectorAll('.code-content').forEach(c => c.classList.remove('active'));
+    e.target.classList.add('active');
+    const target = e.target.dataset.target;
+    block.querySelector('#' + target).classList.add('active');
+  });
+});
+
+// ============== COPY BUTTONS ==============
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    let target;
+    if (btn.id === 'copyActiveTab') {
+      const block = btn.closest('.code-block');
+      target = block.querySelector('.code-content.active');
+    } else {
+      target = document.getElementById(btn.dataset.copy);
+    }
+    if (!target) return;
+    const text = target.textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const orig = btn.textContent;
+      btn.textContent = '✓ copied';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = orig;
+        btn.classList.remove('copied');
+      }, 1500);
+    });
+  });
+});
+
+// ============== QUIZ ==============
+const quizQuestions = [
+  {
+    q: "Which best describes a headless CMS?",
+    options: [
+      "A CMS without an admin panel",
+      "A content store that exposes content via API and doesn't render HTML itself",
+      "A WordPress plugin that disables themes",
+      "A static site generator"
+    ],
+    correct: 1,
+    explain: "The defining feature is decoupling: the CMS serves content as data (REST or GraphQL); rendering is whatever consumes the API. Admin panels still exist."
+  },
+  {
+    q: "Why do W3Techs and BuiltWith systematically undercount headless CMS usage?",
+    options: [
+      "They don't survey enough websites",
+      "Headless vendors hide their usage statistics",
+      "They fingerprint based on rendered HTML, and headless deployments leave no CMS-specific signature",
+      "Only enterprise sites use headless CMSs"
+    ],
+    correct: 2,
+    explain: "A WordPress site advertises itself in its HTML (meta generator, wp-content paths). A Next.js site fetching from Contentful renders as plain HTML and JS — no signal upstream. Detection misses it entirely."
+  },
+  {
+    q: "Why is Strapi the recommended choice for a classroom lab?",
+    options: [
+      "It's the technically best headless CMS available",
+      "It's the only headless CMS with a free tier",
+      "It runs locally without accounts or credit cards, is open source, and exposes both REST and GraphQL automatically",
+      "It's owned by Anthropic"
+    ],
+    correct: 2,
+    explain: "Strapi wins on classroom logistics, not absolute technical merit. No SaaS signups for 20+ students, runs on SQLite locally, and gives both API styles for free. In a real product team, Sanity or Payload may be a better fit."
+  },
+  {
+    q: "In the Strapi lab, what's the one step students will most often forget — leading to a 403 from the API?",
+    options: [
+      "Installing Node.js",
+      "Enabling find/findOne on the Public role for the Article content type",
+      "Running npm install",
+      "Setting the database connection string"
+    ],
+    correct: 1,
+    explain: "Strapi creates content but locks it down by default. Until you go to Settings → Roles → Public and enable read permissions on your content type, the API returns 403 Forbidden. This is the single most common stumbling block."
+  },
+  {
+    q: "Roughly what share of the entire web does WordPress power in 2026?",
+    options: [
+      "About 20%",
+      "About 43%",
+      "About 65%",
+      "About 80%"
+    ],
+    correct: 1,
+    explain: "WordPress powers ~43% of all websites and ~62% of CMS-powered sites (about 30% of websites use no detected CMS). It peaked higher around 2022 and has slowly been losing share since."
+  }
+];
+
+let quizIdx = 0;
+let quizScore = 0;
+const quizBody = document.getElementById('quizBody');
+const quizProgress = document.getElementById('quizProgress');
+
+function renderQuestion() {
+  const q = quizQuestions[quizIdx];
+  // Update progress bar
+  Array.from(quizProgress.children).forEach((bar, i) => {
+    bar.classList.remove('current');
+    if (i === quizIdx) bar.classList.add('current');
+  });
+
+  quizBody.innerHTML = `
+    <div class="quiz-question">${q.q}</div>
+    <div class="quiz-options">
+      ${q.options.map((opt, i) => `
+        <button class="quiz-option" data-idx="${i}">
+          <span class="opt-letter">${String.fromCharCode(65 + i)}</span>
+          <span>${opt}</span>
+        </button>
+      `).join('')}
+    </div>
+    <div class="quiz-explanation" id="quizExplain"></div>
+    <button class="btn quiz-next" id="quizNext" style="display: none;">${quizIdx === quizQuestions.length - 1 ? 'See score →' : 'Next question →'}</button>
+  `;
+
+  quizBody.querySelectorAll('.quiz-option').forEach(btn => {
+    btn.addEventListener('click', () => handleAnswer(btn));
+  });
+  document.getElementById('quizNext').addEventListener('click', nextQuestion);
+}
+
+function handleAnswer(btn) {
+  const chosen = parseInt(btn.dataset.idx);
+  const correct = quizQuestions[quizIdx].correct;
+  const allOptions = quizBody.querySelectorAll('.quiz-option');
+  allOptions.forEach((b, i) => {
+    b.classList.add('disabled');
+    if (i === correct) b.classList.add('correct');
+    else if (i === chosen) b.classList.add('wrong');
+  });
+
+  // Update progress
+  const bar = quizProgress.children[quizIdx];
+  bar.classList.remove('current');
+  if (chosen === correct) {
+    bar.classList.add('done');
+    quizScore++;
+  } else {
+    bar.classList.add('wrong');
+  }
+
+  const explain = document.getElementById('quizExplain');
+  explain.innerHTML = '<strong style="color: var(--mint); font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase;">Why</strong><br>' + quizQuestions[quizIdx].explain;
+  explain.classList.add('shown');
+  document.getElementById('quizNext').style.display = 'inline-block';
+}
+
+function nextQuestion() {
+  quizIdx++;
+  if (quizIdx >= quizQuestions.length) {
+    showQuizResult();
+  } else {
+    renderQuestion();
+  }
+}
+
+function showQuizResult() {
+  const messages = {
+    5: 'You were paying attention.',
+    4: 'Strong recall.',
+    3: 'Solid — the methodology lesson stuck.',
+    2: 'The basics are there. Re-skim section D.',
+    1: 'Worth revisiting the deck — start at slide 10.',
+    0: 'Begin again. With tea this time.'
+  };
+  quizBody.innerHTML = `
+    <div class="quiz-final">
+      <div style="font-family: var(--mono); font-size: 0.85rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-dim);">Final score</div>
+      <div class="quiz-score">${quizScore}<span class="total"> / 5</span></div>
+      <div class="quiz-message">${messages[quizScore]}</div>
+      <button class="btn" onclick="resetQuiz()">↻ Try again</button>
+    </div>
+  `;
+  // Mark all bars
+  Array.from(quizProgress.children).forEach(bar => bar.classList.remove('current'));
+}
+
+function resetQuiz() {
+  quizIdx = 0;
+  quizScore = 0;
+  Array.from(quizProgress.children).forEach((bar, i) => {
+    bar.classList.remove('done', 'wrong', 'current');
+    if (i === 0) bar.classList.add('current');
+  });
+  renderQuestion();
+}
+window.resetQuiz = resetQuiz;
+
+renderQuestion();
+
+// ============== Initialise ==============
+showSlide(0);
+</script>
+</body>
+</html>
